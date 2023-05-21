@@ -6,7 +6,9 @@
 #include "julia.h"
 #include "julia_internal.h"
 
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <getopt.h>
 #include "julia_assert.h"
 

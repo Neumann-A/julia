@@ -618,6 +618,29 @@ static const char *absformat(const char *in)
     return out;
 }
 
+#ifdef _MSC_VER
+#define PATHSEPSTRING "\\"
+char * dirname(char * x) {
+    int idx = strlen(x);
+    while (idx > 0 && x[idx] != PATHSEPSTRING[0]) {
+        idx -= 1;
+    }
+    if (x[idx] == PATHSEPSTRING[0]) {
+        // Special-case x == "/"
+        if (idx == 0) {
+            x[1] = '\0';
+            return x;
+        } else {
+            x[idx] = '\0';
+            return x;
+        }
+    }
+    x[0] = '.';
+    x[1] = '\0';
+    return x;
+}
+#endif
+
 static void jl_resolve_sysimg_location(JL_IMAGE_SEARCH rel)
 {   // this function resolves the paths in jl_options to absolute file locations as needed
     // and it replaces the pointers to `julia_bindir`, `julia_bin`, `image_file`, and output file paths

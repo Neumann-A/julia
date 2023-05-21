@@ -130,7 +130,7 @@ static jl_mutex_t finalizers_lock;
 static uv_mutex_t gc_cache_lock;
 
 // mutex for gc-heap-snapshot.
-jl_mutex_t heapsnapshot_lock;
+JL_DLLEXPORT jl_mutex_t heapsnapshot_lock;
 
 // Flag that tells us whether we need to support conservative marking
 // of objects.

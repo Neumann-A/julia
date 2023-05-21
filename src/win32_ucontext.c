@@ -3,6 +3,7 @@
 #include "win32_ucontext.h"
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 
 #ifdef __cplusplus
@@ -27,7 +28,7 @@ JL_DLLEXPORT EXCEPTION_DISPOSITION NTAPI __julia_personality(
     EXCEPTION_DISPOSITION rval;
     switch (jl_exception_handler(&ExceptionInfo)) {
         case EXCEPTION_EXECUTE_HANDLER:
-            rval = ExceptionExecuteHandler;
+            rval = 4; //ExceptionExecuteHandler;
             break;
         case EXCEPTION_CONTINUE_EXECUTION:
             rval = ExceptionContinueExecution;

@@ -655,7 +655,7 @@ jl_code_info_t *jl_code_for_interpreter(jl_method_instance_t *mi, size_t world)
 
 // interpreter entry points
 
-jl_value_t *NOINLINE jl_fptr_interpret_call(jl_value_t *f, jl_value_t **args, uint32_t nargs, jl_code_instance_t *codeinst)
+NOINLINE jl_value_t * jl_fptr_interpret_call(jl_value_t *f, jl_value_t **args, uint32_t nargs, jl_code_instance_t *codeinst)
 {
     interpreter_state *s;
     jl_method_instance_t *mi = codeinst->def;
@@ -742,7 +742,7 @@ jl_value_t *jl_interpret_opaque_closure(jl_opaque_closure_t *oc, jl_value_t **ar
     return r;
 }
 
-jl_value_t *NOINLINE jl_interpret_toplevel_thunk(jl_module_t *m, jl_code_info_t *src)
+NOINLINE jl_value_t * jl_interpret_toplevel_thunk(jl_module_t *m, jl_code_info_t *src)
 {
     interpreter_state *s;
     unsigned nroots = jl_source_nslots(src) + jl_source_nssavalues(src);
@@ -766,7 +766,7 @@ jl_value_t *NOINLINE jl_interpret_toplevel_thunk(jl_module_t *m, jl_code_info_t 
 // deprecated: do not use this method in new code
 // it uses special scoping / evaluation / error rules
 // which should instead be handled in lowering
-jl_value_t *NOINLINE jl_interpret_toplevel_expr_in(jl_module_t *m, jl_value_t *e, jl_code_info_t *src, jl_svec_t *sparam_vals)
+NOINLINE jl_value_t * jl_interpret_toplevel_expr_in(jl_module_t *m, jl_value_t *e, jl_code_info_t *src, jl_svec_t *sparam_vals)
 {
     interpreter_state *s;
     jl_value_t **locals;

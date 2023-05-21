@@ -33,7 +33,7 @@
 *                               Compiler                                       *
 *******************************************************************************/
 
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_MSC_VER)
 #define _COMPILER_CLANG_
 #elif defined(__GNUC__)
 #define _COMPILER_GCC_

@@ -3,8 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _MSC_VER
 #include <strings.h>
-
+#endif
 #include "julia.h"
 #include "julia_internal.h"
 #include "gc.h"
