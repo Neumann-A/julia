@@ -26,7 +26,9 @@
 #endif
 
 // pragma visibility is more useful than -fvisibility
+#ifndef _MSC_VER
 #pragma GCC visibility push(hidden)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,11 +145,12 @@ JL_DLLIMPORT void __tsan_switch_to_fiber(void *fiber, unsigned flags);
 // If we've smashed the stack, (and not just normal NORETURN)
 // this will smash stack-unwind too
 #ifdef _OS_WINDOWS_
-#if defined(_CPU_X86_64_)
+#if defined(_CPU_X86_64_) && !defined(_MSC_VER)
     // install the unhandled exception handler at the top of our stack
     // to call directly into our personality handler
+    // yields error: all .cv_loc directives for a function must be in the same section
 #define CFI_NORETURN \
-    asm volatile ("\t.seh_handler __julia_personality, @except\n\t.text");
+    __asm__ __volatile__ ("\t.seh_handler __julia_personality, @except\n\t.text");
 #else
 #define CFI_NORETURN
 #endif
@@ -170,8 +173,13 @@ JL_DLLIMPORT void __tsan_switch_to_fiber(void *fiber, unsigned flags);
 #endif
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 extern JL_DLLEXPORT uintptr_t __stack_chk_guard;
-
+#ifdef __cplusplus
+}
+#endif
 // If this is detected in a backtrace of segfault, it means the functions
 // that use this value must be reworked into their async form with cb arg
 // provided and with JL_UV_LOCK used around the calls
@@ -207,7 +215,9 @@ JL_DLLEXPORT void jl_unlock_profile_wr(void) JL_NOTSAFEPOINT JL_NOTSAFEPOINT_LEA
 // number of cycles since power-on
 static inline uint64_t cycleclock(void) JL_NOTSAFEPOINT
 {
-#if defined(_CPU_X86_64_)
+#ifdef _MSC_VER
+  return __rdtsc(); 
+#elif defined(_CPU_X86_64_)
     uint64_t low, high;
     __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
     return (high << 32) | low;
@@ -1119,9 +1129,13 @@ extern JL_DLLEXPORT uv_mutex_t jl_in_stackwalk;
 #elif !defined(JL_DISABLE_LIBUNWIND)
 // This gives unwind only local unwinding options ==> faster code
 #  define UNW_LOCAL_ONLY
+#ifndef _MSC_VER
 #pragma GCC visibility push(default)
+#endif
 #  include <libunwind.h>
+#ifndef _MSC_VER
 #pragma GCC visibility pop
+#endif
 typedef unw_context_t bt_context_t;
 typedef unw_cursor_t bt_cursor_t;
 #  if (!defined(SYSTEM_LIBUNWIND) || UNW_VERSION_MAJOR > 1 ||   \
@@ -1682,9 +1696,9 @@ JL_DLLIMPORT uint64_t jl_getUnwindInfo(uint64_t dwBase);
 #ifdef __cplusplus
 }
 #endif
-
+#ifndef _MSC_VER
 #pragma GCC visibility pop
-
+#endif
 
 #ifdef USE_DTRACE
 // Generated file, needs to be searched in include paths so that the builddir

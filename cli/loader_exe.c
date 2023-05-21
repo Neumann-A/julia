@@ -24,13 +24,18 @@ JL_DLLEXPORT const char* __asan_default_options(void)
 }
 #endif
 
-#ifdef _OS_WINDOWS_
+#if defined(_OS_WINDOWS_) && !defined(_MSC_VER)
+#include <shellapi.h>
 int mainCRTStartup(void)
 {
     int argc;
-    LPWSTR * wargv = CommandLineToArgv(GetCommandLine(), &argc);
+    LPWSTR * wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     char ** argv = (char **)malloc(sizeof(char*) * (argc + 1));
     setup_stdio();
+#elif defined(_MSC_VER)
+int wmain(int argc, wchar_t *wargv[])
+{
+    char **argv = (char **)malloc(sizeof(char *) * (argc + 1));
 #else
 int main(int argc, char * argv[])
 {

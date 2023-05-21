@@ -451,7 +451,65 @@ typedef
 
 #if defined(PLAT_amd64_win64) && !defined(__GNUC__)
 
-#error Unsupported compiler.
+
+typedef
+   struct {
+      unsigned long int nraddr; /* where's the code? */
+   }
+   OrigFn;
+
+#define __SPECIAL_INSTRUCTION_PREAMBLE                            \
+                     "rolq $3,  %%rdi ; rolq $13, %%rdi\n\t"      \
+                     "rolq $61, %%rdi ; rolq $51, %%rdi\n\t"
+
+#define VALGRIND_DO_CLIENT_REQUEST_EXPR(                          \
+        _zzq_default, _zzq_request,                               \
+        _zzq_arg1, _zzq_arg2, _zzq_arg3, _zzq_arg4, _zzq_arg5)    \
+    __extension__                                                 \
+    ({ volatile unsigned long int _zzq_args[6];                   \
+    volatile unsigned long int _zzq_result;                       \
+    _zzq_args[0] = (unsigned long int)(_zzq_request);             \
+    _zzq_args[1] = (unsigned long int)(_zzq_arg1);                \
+    _zzq_args[2] = (unsigned long int)(_zzq_arg2);                \
+    _zzq_args[3] = (unsigned long int)(_zzq_arg3);                \
+    _zzq_args[4] = (unsigned long int)(_zzq_arg4);                \
+    _zzq_args[5] = (unsigned long int)(_zzq_arg5);                \
+    __asm__ volatile(__SPECIAL_INSTRUCTION_PREAMBLE               \
+                     /* %RDX = client_request ( %RAX ) */         \
+                     "xchgq %%rbx,%%rbx"                          \
+                     : "=d" (_zzq_result)                         \
+                     : "a" (&_zzq_args[0]), "0" (_zzq_default)    \
+                     : "cc", "memory"                             \
+                    );                                            \
+    _zzq_result;                                                  \
+    })
+
+#define VALGRIND_GET_NR_CONTEXT(_zzq_rlval)                       \
+  { volatile OrigFn* _zzq_orig = &(_zzq_rlval);                   \
+    volatile unsigned long int __addr;                            \
+    __asm__ volatile(__SPECIAL_INSTRUCTION_PREAMBLE               \
+                     /* %RAX = guest_NRADDR */                    \
+                     "xchgq %%rcx,%%rcx"                          \
+                     : "=a" (__addr)                              \
+                     :                                            \
+                     : "cc", "memory"                             \
+                    );                                            \
+    _zzq_orig->nraddr = __addr;                                   \
+  }
+
+#define VALGRIND_CALL_NOREDIR_RAX                                 \
+                     __SPECIAL_INSTRUCTION_PREAMBLE               \
+                     /* call-noredir *%RAX */                     \
+                     "xchgq %%rdx,%%rdx\n\t"
+
+#define VALGRIND_VEX_INJECT_IR()                                 \
+ do {                                                            \
+    __asm__ volatile(__SPECIAL_INSTRUCTION_PREAMBLE              \
+                     "xchgq %%rdi,%%rdi\n\t"                     \
+                     : : : "cc", "memory"                        \
+                    );                                           \
+ } while (0)
+
 
 #endif /* PLAT_amd64_win64 */
 

@@ -1,6 +1,6 @@
 // This file is a part of Julia. License is MIT: https://julialang.org/license
 
-#include "uv.h"
+#include <uv.h>
 #if EDOM > 0
 # define UV__ERR(x) (-(x))
 #else

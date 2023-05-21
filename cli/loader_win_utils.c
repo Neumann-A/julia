@@ -1,6 +1,10 @@
 // This file is a part of Julia. License is MIT: https://julialang.org/license
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 // Workarounds for compiling via mingw without using libgcc_s
+#ifndef _MSC_VER
 typedef struct {
     HANDLE fd;
     BOOL isconsole;
@@ -12,6 +16,17 @@ static FILE _stderr = { INVALID_HANDLE_VALUE };
 FILE *stdout = &_stdout;
 FILE *stderr = &_stderr;
 
+#endif
+
+void * loader_malloc(const size_t size) {
+    return HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, size);
+}
+
+void loader_free(void* mem) {
+    HeapFree(GetProcessHeap(), 0, mem);
+}
+
+#ifndef _MSC_VER
 int loader_fwrite(const char *str, size_t nchars, FILE *out) {
     DWORD written;
     if (out->isconsole) {
@@ -31,21 +46,21 @@ int loader_fwrite(const char *str, size_t nchars, FILE *out) {
     }
     return -1;
 }
-
 int loader_fputs(const char *str, FILE *out) {
     return loader_fwrite(str, loader_strlen(str), out);
 }
 
-void * loader_malloc(const size_t size) {
-    return HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, size);
+#endif
+
+size_t loader_strlen(const char * x) {
+    int idx = 0;
+    while (x[idx] != 0)
+        idx++;
+    return idx;
 }
 
 void * loader_realloc(void * mem, const size_t size) {
     return HeapReAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, mem, size);
-}
-
-void loader_free(void* mem) {
-    HeapFree(GetProcessHeap(), 0, mem);
 }
 
 LPWSTR *CommandLineToArgv(LPWSTR lpCmdLine, int *pNumArgs) {
@@ -102,6 +117,7 @@ LPWSTR *CommandLineToArgv(LPWSTR lpCmdLine, int *pNumArgs) {
     }
 }
 
+#ifndef _MSC_VER
 void setup_stdio() {
     DWORD mode = 0;
     _stdout.fd = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -109,7 +125,7 @@ void setup_stdio() {
     _stderr.fd = GetStdHandle(STD_ERROR_HANDLE);
     _stderr.isconsole = GetConsoleMode(_stderr.fd, &mode);
 }
-
+#endif
 void loader_exit(int code) {
     ExitProcess(code);
 }
@@ -146,13 +162,6 @@ wchar_t *utf8_to_wchar(const char * str) {
     if (!MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, len))
         return NULL;
     return wstr;
-}
-
-size_t loader_strlen(const char * x) {
-    int idx = 0;
-    while (x[idx] != 0)
-        idx++;
-    return idx;
 }
 
 size_t loader_wcslen(const wchar_t * x) {

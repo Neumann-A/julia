@@ -645,6 +645,7 @@ static const auto jlsmall_typeof_var = new JuliaVariable{
     [](Type *T_size) -> Type * { return getInt8Ty(T_size->getContext()); },
 };
 
+__declspec(dllimport) extern "C" uintptr_t __stack_chk_guard;
 static const auto jlstack_chk_guard_var = new JuliaVariable{
     XSTR(__stack_chk_guard),
     true,
@@ -9189,7 +9190,7 @@ extern "C" JL_DLLEXPORT_CODEGEN jl_value_t *jl_get_libllvm_impl(void) JL_NOTSAFE
 {
 #if defined(_OS_WINDOWS_)
     HMODULE mod;
-    if (!GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)&llvm::DebugFlag, &mod))
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCSTR)&llvm::DebugFlag, &mod))
         return jl_nothing;
     wchar_t path16[MAX_PATH];
     DWORD n16 = GetModuleFileNameW(mod, path16, MAX_PATH);

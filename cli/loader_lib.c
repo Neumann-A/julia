@@ -384,7 +384,12 @@ __attribute__((constructor)) void jl_load_libjulia_internal(void) {
     //   libstdc++
     //   libjulia-internal
     //   libjulia-codegen
+#ifndef _MSC_VER
     const int NUM_SPECIAL_LIBRARIES = 3;
+#else
+    //We don't use libstdc++ in this case. Using normal Windows CRT
+    const int NUM_SPECIAL_LIBRARIES = 2;
+#endif()
     int special_idx = 0;
     while (1) {
         // try to find next colon character; if we can't, break out
@@ -433,6 +438,7 @@ __attribute__((constructor)) void jl_load_libjulia_internal(void) {
             // Skip the `@` for future function calls.
             curr_dep += 1;
 
+#ifndef _MSC_VER
             // First special library to be loaded is `libstdc++`; perform probing here.
             if (special_idx == 0) {
 #if defined(_OS_LINUX_)
@@ -475,6 +481,16 @@ __attribute__((constructor)) void jl_load_libjulia_internal(void) {
                 libjulia_codegen = load_library(curr_dep, lib_dir, 0);
             }
             special_idx++;
+#else
+            if (special_idx == 0) {
+                // This special library is `libjulia-internal`
+                libjulia_internal = load_library(curr_dep, lib_dir, 1);
+            } else if (special_idx == 1) {
+                // This special library is `libjulia-codegen`
+                libjulia_codegen = load_library(curr_dep, lib_dir, 0);
+            }
+            special_idx++;
+#endif
         } else {
             // Otherwise, just load it as "normal"
             load_library(curr_dep, lib_dir, 1);
@@ -563,15 +579,45 @@ JL_DLLEXPORT int jl_load_repl(int argc, char * argv[]) {
     return entrypoint(argc, (char **)argv);
 }
 
-#ifdef _OS_WINDOWS_
-int __stdcall DllMainCRTStartup(void *instance, unsigned reason, void *reserved) {
+#if defined(_OS_WINDOWS_) && !defined(_MSC_VER)
+int __stdcall DllMainCRTStartup(HINSTANCE hinstDLL, DWORD fdwReason,
+LPVOID lpReserved) {
     setup_stdio();
-
     // Because we override DllMainCRTStartup, we have to manually call our constructor methods
     jl_load_libjulia_internal();
     return 1;
 }
 #endif
+
+#ifdef _MSC_VER
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,  // handle to DLL module
+    DWORD fdwReason,     // reason for calling function
+    LPVOID lpvReserved )  // reserved
+{
+    // Perform actions based on the reason for calling.
+    switch( fdwReason ) 
+    { 
+        case DLL_PROCESS_ATTACH:
+        case DLL_THREAD_ATTACH:
+         // Initialize once for each new process.
+         // Return FALSE to fail DLL load.
+            jl_load_libjulia_internal();
+            break;
+
+        case DLL_THREAD_DETACH:
+        case DLL_PROCESS_DETACH:
+            if (lpvReserved != NULL)
+            {
+                break; // do not do cleanup if process termination scenario
+            }
+            
+         // Perform any necessary cleanup.
+            break;
+    }
+    return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}
+#endif 
 
 #ifdef __cplusplus
 } // extern "C"

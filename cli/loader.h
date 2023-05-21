@@ -5,7 +5,7 @@
 #include "../src/support/dirpath.h"
 #include "../src/julia_fasttls.h"
 
-#ifdef _OS_WINDOWS_
+#if defined(_OS_WINDOWS_) && !defined(_MSC_VER)
 /* We need to reimplement a bunch of standard library stuff on windows,
  * but we want to make sure that it doesn't conflict with the actual implementations
  * once those get linked into this process. */
@@ -21,13 +21,19 @@
 #define malloc loader_malloc
 #define realloc loader_realloc
 #define free loader_free
+#elif defined(_MSC_VER)
+#include <stdlib.h>
+#include <malloc.h>
+#include <stdio.h>
+#define dirname loader_dirname
 #endif
 
 #ifdef _OS_WINDOWS_
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
+#include <stdlib.h>
+#include <malloc.h>
 #else
 
 #ifdef _OS_DARWIN_

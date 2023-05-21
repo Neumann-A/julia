@@ -41,8 +41,9 @@
 #include <locale.h>
 #include <limits.h>
 #include <errno.h>
+#ifndef _MSC_VER
 #include <libgen.h> // defines dirname
-
+#endif
 #include "platform.h"
 #include "libsupport.h"
 #include "flisp.h"
@@ -915,7 +916,11 @@ static uint32_t process_keys(fl_context_t *fl_ctx, value_t kwtable,
     uintptr_t n;
     uint32_t extr = nopt+nkw;
     uint32_t ntot = nreq+extr;
+#ifndef _MSC_VER 
     value_t *args = (value_t*)alloca(extr*sizeof(value_t));
+#else
+    value_t *args = (value_t*)_alloca(extr*sizeof(value_t));
+#endif
     value_t v;
     uint32_t i, a = 0, nrestargs;
     value_t s1 = fl_ctx->Stack[fl_ctx->SP-1];
@@ -2406,7 +2411,20 @@ static void lisp_init(fl_context_t *fl_ctx, size_t initial_heapsize)
     char exename[1024];
     size_t exe_size = sizeof(exename) / sizeof(exename[0]);
     if ( uv_exepath(exename, &exe_size) == 0 ) {
+#ifdef _MSC_VER
+        char dir[1024];
+        strcpy(dir, exename);
+        char * last_path_sep = strrchr(dir,'\\');
+        if(last_path_sep != NULL) {
+          last_path_sep[0] = '\0';
+        } else {
+          dir[0] = '.';
+          dir[1] = '\0';
+        }
+        setc(symbol(fl_ctx, "*install-dir*"), cvalue_static_cstring(fl_ctx, strdup(dir)));
+#else
         setc(symbol(fl_ctx, "*install-dir*"), cvalue_static_cstring(fl_ctx, strdup(dirname(exename))));
+#endif
     }
 
     fl_ctx->memory_exception_value = fl_list2(fl_ctx, fl_ctx->OutOfMemoryError,

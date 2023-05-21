@@ -257,14 +257,21 @@ void jl_debugcache_t::initialize(Module *m) {
         julia_h,
         71, // At the time of this writing. Not sure if it's worth it to keep this in sync
         0 * 8, // sizeof(jl_value_t) * 8,
+#ifdef _MSC_VER
+        alignof(void*) * 8, // __alignof__(jl_value_t) * 8,
+#else
         __alignof__(void*) * 8, // __alignof__(jl_value_t) * 8,
+#endif
         DINode::FlagZero, // Flags
         nullptr,    // Derived from
         nullptr);  // Elements - will be corrected later
 
     jl_pvalue_dillvmt = dbuilder.createPointerType(jl_value_dillvmt, sizeof(jl_value_t*) * 8,
+#ifdef _MSC_VER
+                                                alignof(jl_value_t*) * 8);
+#else
                                                 __alignof__(jl_value_t*) * 8);
-
+#endif
     SmallVector<llvm::Metadata *, 1> Elts;
     std::vector<Metadata*> diargs(0);
     Elts.push_back(jl_pvalue_dillvmt);
@@ -272,8 +279,11 @@ void jl_debugcache_t::initialize(Module *m) {
     dbuilder.getOrCreateArray(Elts));
 
     jl_ppvalue_dillvmt = dbuilder.createPointerType(jl_pvalue_dillvmt, sizeof(jl_value_t**) * 8,
+#ifdef _MSC_VER
+                                                    alignof(jl_value_t**) * 8);
+#else
                                                     __alignof__(jl_value_t**) * 8);
-
+#endif
     diargs.push_back(jl_pvalue_dillvmt);    // Return Type (ret value)
     diargs.push_back(jl_pvalue_dillvmt);    // First Argument (function)
     diargs.push_back(jl_ppvalue_dillvmt);   // Second Argument (argv)

@@ -29,7 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <inttypes.h>
 #include "julia.h"
