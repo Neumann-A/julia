@@ -1,4 +1,6 @@
-
+if(WIN32)
+    add_compile_definitions("UNICODE" "_UNICODE")
+endif()
 
 set(jl_trampoline "")
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/trampolines/trampolines_${JL_ARCH}.S")
@@ -6,6 +8,8 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/trampolines/trampolines_${JL_ARCH}.S")
     add_library(julia_trampoline OBJECT "${CMAKE_CURRENT_LIST_DIR}/trampolines/trampolines_${JL_ARCH}.S")
     add_library(jl::trampoline ALIAS julia_trampoline)
     set(jl_trampoline "$<TARGET_OBJECTS:jl::trampoline>")
+else()
+    message(FATAL_ERROR "No trampoline for arch:${JL_ARCH}")
 endif()
 
 # TODO: Setup JL_DEP_LIBS with the correct file names. Probably a TARGET_FILENAME Genex
@@ -24,7 +28,11 @@ target_include_directories(julia PUBLIC "../src/support")
 
 add_executable(julia_bin loader_exe.c)
 add_executable(jl::bin::julia ALIAS julia_bin)
-set_target_properties(julia_bin PROPERTIES OUTPUT_NAME julia)
+set_target_properties(julia_bin PROPERTIES 
+                        OUTPUT_NAME julia 
+                        ARCHIVE_OUTPUT_NAME julia_exe_ar 
+                        LIBRARY_OUTPUT_NAME julia_exe_lib
+                    )
 target_link_libraries(julia_bin PRIVATE jl::julia)
 if(WIN32)
     target_sources(julia_bin PRIVATE "${CMAKE_SOURCE_DIR}/contrib/windows/julia.rc")

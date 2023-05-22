@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-#include <threading.h>
+#include "threading.h"
 
 // Profiler control variables
 // Note: these "static" variables are also used in "signals-*.c"

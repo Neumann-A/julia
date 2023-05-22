@@ -11,7 +11,7 @@ set(CMAKE_DEBUG_SUFFIX "-debug")
 
 if(WIN32)
     # add_compile_definitions("_OS_WINDOWS_") # Should probably be moved into a os configuration header instead. Windows typically defines _WIN32 (Note there is src/supports/platform.h)
-    add_compile_definitions("UNICODE" "_UNICODE")
+    #add_compile_definitions("UNICODE" "_UNICODE")
     add_link_options(-STACK:8388608) # This setting should only be applied to the part which actually needs it?
 endif()
 

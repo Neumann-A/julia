@@ -11,7 +11,7 @@ include(options)
 include(select-default-toolchain)
 
 project(Julia 
-        VERSION 1.10
+        VERSION 1.10.0
         DESCRIPTION "Julia is a high-level, high-performance dynamic language for technical computing."
         HOMEPAGE_URL "julialang.org"
         LANGUAGES C CXX #ASM
@@ -32,6 +32,9 @@ add_subdirectory(cli)
 add_subdirectory(src)
 add_subdirectory(base)
 
+# Compile sysimage
+
+add_subdirectory(stdlib)
 #TODO: add global install rules.
 
 
@@ -44,3 +47,5 @@ install(TARGETS julia
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+install(FILES "etc/startup.jl" DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/julia")

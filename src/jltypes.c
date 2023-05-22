@@ -1164,15 +1164,12 @@ static void cache_insert_type_linear(jl_datatype_t *type, ssize_t insert_at)
     jl_svecset(cache, insert_at, (jl_value_t*)type); // todo: make this an atomic-store
 }
 
-#ifndef NDEBUG
 static int is_cacheable(jl_datatype_t *type)
 {
     // ensure cache only contains types whose behavior will not depend on the
     // identities of contained TypeVars
     return !jl_has_free_typevars((jl_value_t*)type);
 }
-#endif
-
 
 void jl_cache_type_(jl_datatype_t *type)
 {
