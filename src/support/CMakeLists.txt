@@ -15,7 +15,7 @@ endif()
 add_library(support STATIC ${support_SRCS})
 add_library(jl::support ALIAS support)
 target_compile_definitions(support PRIVATE "JL_LIBRARY_EXPORTS_INTERNAL")
+target_include_directories(support PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
 target_link_libraries(support PRIVATE jl::utf8proc)
-
 
 # TODO: -I$(LIBUV_INC) -I$(UTF8PROC_INC)
