@@ -389,7 +389,7 @@ __attribute__((constructor)) void jl_load_libjulia_internal(void) {
 #else
     //We don't use libstdc++ in this case. Using normal Windows CRT
     const int NUM_SPECIAL_LIBRARIES = 2;
-#endif()
+#endif
     int special_idx = 0;
     while (1) {
         // try to find next colon character; if we can't, break out
