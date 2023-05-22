@@ -33,3 +33,14 @@ add_subdirectory(src)
 add_subdirectory(base)
 
 #TODO: add global install rules.
+
+
+install(TARGETS julia
+                julia_bin
+                julia-internal
+                julia-codegen
+#https://cmake.org/cmake/help/latest/module/GNUInstallDirs.html 
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} 
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)

@@ -10,17 +10,20 @@ endif()
 
 # TODO: Setup JL_DEP_LIBS with the correct file names. Probably a TARGET_FILENAME Genex
 # TODO: Why is there a step stripping symbols? (Maybe due to exporting all symbols?)
-set(JL_DEP_LIBS "@$<TARGET_FILE_NAME:libjulia-internal>:@$<TARGET_FILE_NAME:libjulia-codegen>")
-
+if(WIN32)
+    set(JL_DEP_LIBS "@$<TARGET_FILE_NAME:julia-internal>:@$<TARGET_FILE_NAME:julia-codegen>:")
+else()
+    set(JL_DEP_LIBS "@$../lib/<TARGET_FILE_NAME:julia-internal>:../lib/@$<TARGET_FILE_NAME:julia-codegen>:")
+endif()
 
 add_library(julia SHARED loader_lib.c jl_exports.h loader.h ${jl_trampoline})
 add_library(jl::julia ALIAS julia)
-target_include_directories(julia PULBIC)
-target_compile_definitions(julia PRIVATE "JL_LIBRARY_EXPORTS" "DEP_LIBS=${JL_DEP_LIBS}")
+target_compile_definitions(julia PRIVATE "JL_LIBRARY_EXPORTS" "DEP_LIBS=\"${JL_DEP_LIBS}\"")
+target_include_directories(julia PUBLIC "../src/support")
 
 
 add_executable(julia_bin loader_exe.c)
-add_library(jl::bin::julia ALIAS julia_bin)
+add_executable(jl::bin::julia ALIAS julia_bin)
 set_target_properties(julia_bin PROPERTIES OUTPUT_NAME julia)
 target_link_libraries(julia_bin PRIVATE jl::julia)
 if(WIN32)
