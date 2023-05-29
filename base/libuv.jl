@@ -3,20 +3,20 @@
 # Core definitions for interacting with the libuv library from Julia
 
 include(string(length(Core.ARGS) >= 2 ? Core.ARGS[2] : "", "uv_constants.jl"))  # include($BUILDROOT/base/uv_constants.jl)
-
+using Base.ExternalLibraryNames
 # convert UV handle data to julia object, checking for null
 function uv_sizeof_handle(handle)
     if !(UV_UNKNOWN_HANDLE < handle < UV_HANDLE_TYPE_MAX)
         throw(DomainError(handle))
     end
-    return ccall(:uv_handle_size, Csize_t, (Int32,), handle)
+    return ccall((:uv_handle_size, libuv), Csize_t, (Int32,), handle)
 end
 
 function uv_sizeof_req(req)
     if !(UV_UNKNOWN_REQ < req < UV_REQ_TYPE_MAX)
         throw(DomainError(req))
     end
-    return ccall(:uv_req_size, Csize_t, (Int32,), req)
+    return ccall((:uv_req_size, libuv), Csize_t, (Int32,), req)
 end
 
 for h in uv_handle_types
@@ -93,8 +93,8 @@ function _UVError(pfx::AbstractString, code::Integer, sfxs::AbstractString...)
     IOError(string(pfx, ": ", struverror(code), " (", uverrorname(code), ")", " ", sfxs...), code)
 end
 
-struverror(err::Int32) = unsafe_string(ccall(:uv_strerror, Cstring, (Int32,), err))
-uverrorname(err::Int32) = unsafe_string(ccall(:uv_err_name, Cstring, (Int32,), err))
+struverror(err::Int32) = unsafe_string(ccall((:uv_strerror, libuv), Cstring, (Int32,), err))
+uverrorname(err::Int32) = unsafe_string(ccall((:uv_err_name, libuv), Cstring, (Int32,), err))
 
 uv_error(prefix::Symbol, c::Integer) = uv_error(string(prefix), c)
 uv_error(prefix::AbstractString, c::Integer) = c < 0 ? throw(_UVError(prefix, c)) : nothing
@@ -103,8 +103,8 @@ uv_error(prefix::AbstractString, c::Integer) = c < 0 ? throw(_UVError(prefix, c)
 
 eventloop() = ccall(:jl_global_event_loop, Ptr{Cvoid}, ())
 
-uv_unref(h::Ptr{Cvoid}) = ccall(:uv_unref, Cvoid, (Ptr{Cvoid},), h)
-uv_ref(h::Ptr{Cvoid}) = ccall(:uv_ref, Cvoid, (Ptr{Cvoid},), h)
+uv_unref(h::Ptr{Cvoid}) = ccall((:uv_unref, libuv), Cvoid, (Ptr{Cvoid},), h)
+uv_ref(h::Ptr{Cvoid}) = ccall((:uv_ref, libuv), Cvoid, (Ptr{Cvoid},), h)
 
 function process_events()
     return ccall(:jl_process_events, Int32, ())

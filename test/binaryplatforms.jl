@@ -167,7 +167,7 @@ end
     @test R("aarch64-unknown-linux-gnu") == P("aarch64", "linux")
     @test R("powerpc64le-linux-gnu") == P("powerpc64le", "linux")
     @test R("ppc64le-linux-gnu") == P("powerpc64le", "linux")
-    @test R("x86_64-w64-mingw32") == P("x86_64", "windows")
+    @test R("x86_64-pc-windows-msvc") == P("x86_64", "windows")
     @test R("i686-w64-mingw32") == P("i686", "windows")
 
     # FreeBSD has lots of arch names that don't match elsewhere

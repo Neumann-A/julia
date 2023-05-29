@@ -24,14 +24,14 @@ libgomp_path::String = ""
 
 if Sys.iswindows()
     if arch(HostPlatform()) == "x86_64"
-        const libgcc_s = "libgcc_s_seh-1.dll"
+        const libgcc_s = ""
     else
-        const libgcc_s = "libgcc_s_sjlj-1.dll"
+        const libgcc_s = ""
     end
-    const libgfortran = string("libgfortran-", libgfortran_version(HostPlatform()).major, ".dll")
-    const libstdcxx = "libstdc++-6.dll"
-    const libgomp = "libgomp-1.dll"
-    const libssp = "libssp-0.dll"
+    const libgfortran = ""
+    const libstdcxx = "vcruntime140.dll"
+    const libgomp = ""
+    const libssp = ""
 elseif Sys.isapple()
     if arch(HostPlatform()) == "aarch64" || libgfortran_version(HostPlatform()) == v"5"
         const libgcc_s = "@rpath/libgcc_s.1.1.dylib"
@@ -53,20 +53,20 @@ else
 end
 
 function __init__()
-    global libgcc_s_handle = dlopen(libgcc_s)
-    global libgcc_s_path = dlpath(libgcc_s_handle)
-    global libgfortran_handle = dlopen(libgfortran)
-    global libgfortran_path = dlpath(libgfortran_handle)
+    #global libgcc_s_handle = dlopen(libgcc_s)
+    #global libgcc_s_path = dlpath(libgcc_s_handle)
+    #global libgfortran_handle = dlopen(libgfortran)
+    #global libgfortran_path = dlpath(libgfortran_handle)
     global libstdcxx_handle = dlopen(libstdcxx)
     global libstdcxx_path = dlpath(libstdcxx_handle)
-    global libgomp_handle = dlopen(libgomp)
-    global libgomp_path = dlpath(libgomp_handle)
-    @static if libc(HostPlatform()) != "musl"
-        dlopen(libssp; throw_error = false)
-    end
+    #global libgomp_handle = dlopen(libgomp)
+    #global libgomp_path = dlpath(libgomp_handle)
+    #@static if libc(HostPlatform()) != "musl"
+    #    dlopen(libssp; throw_error = false)
+    #end
     global artifact_dir = dirname(Sys.BINDIR)
-    LIBPATH[] = dirname(libgcc_s_path)
-    push!(LIBPATH_list, LIBPATH[])
+    #LIBPATH[] = dirname(libgcc_s_path)
+    #push!(LIBPATH_list, LIBPATH[])
 end
 
 # JLLWrappers API compatibility shims.  Note that not all of these will really make sense.

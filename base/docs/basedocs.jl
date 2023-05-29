@@ -139,8 +139,8 @@ See the [manual section about modules](@ref modules) for more details.
 ```julia
 const foo_data_ptr = Ref{Ptr{Cvoid}}(0)
 function __init__()
-    ccall((:foo_init, :libfoo), Cvoid, ())
-    foo_data_ptr[] = ccall((:foo_data, :libfoo), Ptr{Cvoid}, ())
+    ccall((:foo_init, libfoo), Cvoid, ())
+    foo_data_ptr[] = ccall((:foo_data, libfoo), Ptr{Cvoid}, ())
     nothing
 end
 ```

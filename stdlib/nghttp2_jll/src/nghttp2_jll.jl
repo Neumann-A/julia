@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libnghttp2
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -17,13 +15,7 @@ artifact_dir::String = ""
 libnghttp2_handle::Ptr{Cvoid} = C_NULL
 libnghttp2_path::String = ""
 
-if Sys.iswindows()
-    const libnghttp2 = "libnghttp2-14.dll"
-elseif Sys.isapple()
-    const libnghttp2 = "@rpath/libnghttp2.14.dylib"
-else
-    const libnghttp2 = "libnghttp2.so.14"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libnghttp2_handle = dlopen(libnghttp2)

@@ -1,6 +1,8 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 import .Libc: RawFD, dup
+using Base.ExternalLibraryNames
+
 if Sys.iswindows()
     import .Libc: WindowsRawSocket
     const OS_HANDLE = WindowsRawSocket
@@ -193,7 +195,7 @@ end
 function PipeEndpoint()
     pipe = PipeEndpoint(Libc.malloc(_sizeof_uv_named_pipe), StatusUninit)
     iolock_begin()
-    err = ccall(:uv_pipe_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), eventloop(), pipe.handle, 0)
+    err = ccall((:uv_pipe_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), eventloop(), pipe.handle, 0)
     uv_error("failed to create pipe endpoint", err)
     pipe.status = StatusInit
     iolock_end()
@@ -203,7 +205,7 @@ end
 function PipeEndpoint(fd::OS_HANDLE)
     pipe = PipeEndpoint()
     iolock_begin()
-    err = ccall(:uv_pipe_open, Int32, (Ptr{Cvoid}, OS_HANDLE), pipe.handle, fd)
+    err = ccall((:uv_pipe_open, libuv), Int32, (Ptr{Cvoid}, OS_HANDLE), pipe.handle, fd)
     uv_error("pipe_open", err)
     pipe.status = StatusOpen
     iolock_end()
@@ -246,7 +248,7 @@ end
 function TTY(fd::OS_HANDLE)
     tty = TTY(Libc.malloc(_sizeof_uv_tty), StatusUninit)
     iolock_begin()
-    err = ccall(:uv_tty_init, Int32, (Ptr{Cvoid}, Ptr{Cvoid}, OS_HANDLE, Int32),
+    err = ccall((:uv_tty_init, libuv), Int32, (Ptr{Cvoid}, Ptr{Cvoid}, OS_HANDLE, Int32),
         eventloop(), tty.handle, fd, 0)
     uv_error("TTY", err)
     tty.status = StatusOpen
@@ -271,13 +273,13 @@ function isreadable(io::LibuvStream)
     bytesavailable(io) > 0 && return true
     isopen(io) || return false
     io.status == StatusEOF && return false
-    return ccall(:uv_is_readable, Cint, (Ptr{Cvoid},), io.handle) != 0
+    return ccall((:uv_is_readable, libuv), Cint, (Ptr{Cvoid},), io.handle) != 0
 end
 
 function iswritable(io::LibuvStream)
     isopen(io) || return false
     io.status == StatusClosing && return false
-    return ccall(:uv_is_writable, Cint, (Ptr{Cvoid},), io.handle) != 0
+    return ccall((:uv_is_writable, libuv), Cint, (Ptr{Cvoid},), io.handle) != 0
 end
 
 lock(s::LibuvStream) = lock(s.lock)
@@ -329,7 +331,7 @@ of the original handle.
 """
 function open(h::OS_HANDLE)
     iolock_begin()
-    t = ccall(:uv_guess_handle, Cint, (OS_HANDLE,), h)
+    t = ccall((:uv_guess_handle, libuv), Cint, (OS_HANDLE,), h)
     local io
     if t == UV_FILE
         @static if Sys.iswindows()
@@ -439,7 +441,7 @@ function closewrite(s::LibuvStream)
     check_open(s)
     req = Libc.malloc(_sizeof_uv_shutdown)
     uv_req_set_data(req, C_NULL) # in case we get interrupted before arriving at the wait call
-    err = ccall(:uv_shutdown, Int32, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+    err = ccall((:uv_shutdown, libuv), Int32, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                 req, s, @cfunction(uv_shutdowncb_task, Cvoid, (Ptr{Cvoid}, Cint)))
     if err < 0
         Libc.free(req)
@@ -470,7 +472,7 @@ function closewrite(s::LibuvStream)
         unpreserve_handle(ct)
     end
     if isopen(s)
-        if status < 0 || ccall(:uv_is_readable, Cint, (Ptr{Cvoid},), s.handle) == 0
+        if status < 0 || ccall((:uv_is_readable, libuv), Cint, (Ptr{Cvoid},), s.handle) == 0
             close(s)
         end
     end
@@ -588,7 +590,7 @@ function displaysize(io::TTY)
     s1 = Ref{Int32}(0)
     s2 = Ref{Int32}(0)
     iolock_begin()
-    Base.uv_error("size (TTY)", ccall(:uv_tty_get_winsize,
+    Base.uv_error("size (TTY)", ccall((:uv_tty_get_winsize, libuv),
                                       Int32, (Ptr{Cvoid}, Ptr{Int32}, Ptr{Int32}),
                                       io, s1, s2) != 0)
     iolock_end()
@@ -668,7 +670,7 @@ function uv_readcb(handle::Ptr{Cvoid}, nread::Cssize_t, buf::Ptr{Cvoid})
                     notify(stream.cond)
                     if stream isa TTY
                         # stream can still be used by reseteof (or possibly write)
-                    elseif !(stream isa PipeEndpoint) && ccall(:uv_is_writable, Cint, (Ptr{Cvoid},), stream.handle) != 0
+                    elseif !(stream isa PipeEndpoint) && ccall((:uv_is_writable, libuv), Cint, (Ptr{Cvoid},), stream.handle) != 0
                         # stream can still be used by write
                     else
                         # underlying stream is no longer useful: begin finalization
@@ -698,7 +700,7 @@ function uv_readcb(handle::Ptr{Cvoid}, nread::Cssize_t, buf::Ptr{Cvoid})
             ((bytesavailable(stream.buffer) >= stream.throttle) ||
              (bytesavailable(stream.buffer) >= stream.buffer.maxsize)))
             # save cycles by stopping kernel notifications from arriving
-            ccall(:uv_read_stop, Cint, (Ptr{Cvoid},), stream)
+            ccall((:uv_read_stop, libuv), Cint, (Ptr{Cvoid},), stream)
             stream.status = StatusOpen
         end
         nothing
@@ -781,7 +783,7 @@ function open_pipe!(p::PipeEndpoint, handle::OS_HANDLE)
     if p.status != StatusInit
         error("pipe is already in use or has been closed")
     end
-    err = ccall(:uv_pipe_open, Int32, (Ptr{Cvoid}, OS_HANDLE), p.handle, handle)
+    err = ccall((:uv_pipe_open, libuv), Int32, (Ptr{Cvoid}, OS_HANDLE), p.handle, handle)
     uv_error("pipe_open", err)
     p.status = StatusOpen
     iolock_end()
@@ -810,7 +812,7 @@ end
 function link_pipe(reader_supports_async::Bool, writer_supports_async::Bool)
     UV_NONBLOCK_PIPE = 0x40
     fildes = Ref{Pair{OS_HANDLE, OS_HANDLE}}(INVALID_OS_HANDLE => INVALID_OS_HANDLE) # read (in) => write (out)
-    err = ccall(:uv_pipe, Int32, (Ptr{Pair{OS_HANDLE, OS_HANDLE}}, Cint, Cint),
+    err = ccall((:uv_pipe, libuv), Int32, (Ptr{Pair{OS_HANDLE, OS_HANDLE}}, Cint, Cint),
                 fildes,
                 reader_supports_async * UV_NONBLOCK_PIPE,
                 writer_supports_async * UV_NONBLOCK_PIPE)
@@ -843,7 +845,7 @@ function start_reading(stream::LibuvStream)
         # libuv may call the alloc callback immediately
         # for a TTY on Windows, so ensure the status is set first
         stream.status = StatusActive
-        ret = ccall(:uv_read_start, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+        ret = ccall((:uv_read_start, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     stream, @cfunction(uv_alloc_buf, Cvoid, (Ptr{Cvoid}, Csize_t, Ptr{Cvoid})),
                     @cfunction(uv_readcb, Cvoid, (Ptr{Cvoid}, Cssize_t, Ptr{Cvoid})))
     elseif stream.status == StatusPaused
@@ -868,7 +870,7 @@ if Sys.iswindows()
         iolock_begin()
         if stream.status == StatusActive
             stream.status = StatusOpen
-            ccall(:uv_read_stop, Cint, (Ptr{Cvoid},), stream)
+            ccall((:uv_read_stop, libuv), Cint, (Ptr{Cvoid},), stream)
         end
         iolock_end()
         nothing
@@ -1191,7 +1193,7 @@ _fd(x::Union{OS_HANDLE, RawFD}) = x
 function _fd(x::Union{LibuvStream, LibuvServer})
     fd = Ref{OS_HANDLE}(INVALID_OS_HANDLE)
     if x.status != StatusUninit && x.status != StatusClosed && x.handle != C_NULL
-        err = ccall(:uv_fileno, Int32, (Ptr{Cvoid}, Ptr{OS_HANDLE}), x.handle, fd)
+        err = ccall((:uv_fileno, libuv), Int32, (Ptr{Cvoid}, Ptr{OS_HANDLE}), x.handle, fd)
         # handle errors by returning INVALID_OS_HANDLE
     end
     return fd[]

@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libamd, libbtf, libcamd, libccolamd, libcholmod, libcolamd, libklu, libldl, librbio, libspqr, libsuitesparseconfig, libumfpack
-
 # These get calculated in __init__()
 # Man I can't wait until these are automatically handled by an in-Base JLLWrappers clone.
 const PATH = Ref("")
@@ -40,46 +38,7 @@ libsuitesparseconfig_path::String = ""
 libumfpack_handle::Ptr{Cvoid} = C_NULL
 libumfpack_path::String = ""
 
-if Sys.iswindows()
-    const libamd = "libamd.dll"
-    const libbtf = "libbtf.dll"
-    const libcamd = "libcamd.dll"
-    const libccolamd = "libccolamd.dll"
-    const libcholmod = "libcholmod.dll"
-    const libcolamd = "libcolamd.dll"
-    const libklu = "libklu.dll"
-    const libldl = "libldl.dll"
-    const librbio = "librbio.dll"
-    const libspqr = "libspqr.dll"
-    const libsuitesparseconfig = "libsuitesparseconfig.dll"
-    const libumfpack = "libumfpack.dll"
-elseif Sys.isapple()
-    const libamd = "@rpath/libamd.2.dylib"
-    const libbtf = "@rpath/libbtf.1.dylib"
-    const libcamd = "@rpath/libcamd.2.dylib"
-    const libccolamd = "@rpath/libccolamd.2.dylib"
-    const libcholmod = "@rpath/libcholmod.3.dylib"
-    const libcolamd = "@rpath/libcolamd.2.dylib"
-    const libklu = "@rpath/libklu.1.dylib"
-    const libldl = "@rpath/libldl.2.dylib"
-    const librbio = "@rpath/librbio.2.dylib"
-    const libspqr = "@rpath/libspqr.2.dylib"
-    const libsuitesparseconfig = "@rpath/libsuitesparseconfig.5.dylib"
-    const libumfpack = "@rpath/libumfpack.5.dylib"
-else
-    const libamd = "libamd.so.2"
-    const libbtf = "libbtf.so.1"
-    const libcamd = "libcamd.so.2"
-    const libccolamd = "libccolamd.so.2"
-    const libcholmod = "libcholmod.so.3"
-    const libcolamd = "libcolamd.so.2"
-    const libklu = "libklu.so.1"
-    const libldl = "libldl.so.2"
-    const librbio = "librbio.so.2"
-    const libspqr = "libspqr.so.2"
-    const libsuitesparseconfig = "libsuitesparseconfig.so.5"
-    const libumfpack = "libumfpack.so.5"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libamd_handle = dlopen(libamd)

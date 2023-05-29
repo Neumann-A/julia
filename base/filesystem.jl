@@ -4,6 +4,8 @@
 
 module Filesystem
 
+using Base.ExternalLibraryNames
+
 const S_IFDIR  = 0o040000  # directory
 const S_IFCHR  = 0o020000  # character device
 const S_IFBLK  = 0o060000  # block device
@@ -85,7 +87,8 @@ end
 const AVG_PATH = Sys.iswindows() ? 260 : 512
 
 # helper function to clean up libuv request
-uv_fs_req_cleanup(req) = ccall(:uv_fs_req_cleanup, Cvoid, (Ptr{Cvoid},), req)
+
+uv_fs_req_cleanup(req) = ccall((:uv_fs_req_cleanup, libuv), Cvoid, (Ptr{Cvoid},), req)
 
 include("path.jl")
 include("stat.jl")
@@ -113,10 +116,10 @@ function open(path::AbstractString, flags::Integer, mode::Integer=0)
     req = Libc.malloc(_sizeof_uv_fs)
     local handle
     try
-        ret = ccall(:uv_fs_open, Int32,
+        ret = ccall((:uv_fs_open, libuv), Int32,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Int32, Int32, Ptr{Cvoid}),
                     C_NULL, req, path, flags, mode, C_NULL)
-        handle = ccall(:uv_fs_get_result, Cssize_t, (Ptr{Cvoid},), req)
+        handle = ccall((:uv_fs_get_result, libuv), Cssize_t, (Ptr{Cvoid},), req)
         uv_fs_req_cleanup(req)
         ret < 0 && uv_error("open($(repr(path)), $flags, $mode)", ret)
     finally # conversion to Cstring could cause an exception
@@ -172,7 +175,7 @@ write(f::File, c::UInt8) = write(f, Ref{UInt8}(c))
 function truncate(f::File, n::Integer)
     check_open(f)
     req = Libc.malloc(_sizeof_uv_fs)
-    err = ccall(:uv_fs_ftruncate, Int32,
+    err = ccall((:uv_fs_ftruncate, libuv), Int32,
                 (Ptr{Cvoid}, Ptr{Cvoid}, OS_HANDLE, Int64, Ptr{Cvoid}),
                 C_NULL, req, f.handle, n, C_NULL)
     Libc.free(req)
@@ -183,7 +186,7 @@ end
 function futime(f::File, atime::Float64, mtime::Float64)
     check_open(f)
     req = Libc.malloc(_sizeof_uv_fs)
-    err = ccall(:uv_fs_futime, Int32,
+    err = ccall((:uv_fs_futime, libuv), Int32,
                 (Ptr{Cvoid}, Ptr{Cvoid}, OS_HANDLE, Float64, Float64, Ptr{Cvoid}),
                 C_NULL, req, f.handle, atime, mtime, C_NULL)
     Libc.free(req)

@@ -21,6 +21,7 @@ using Base: IndexLinear, promote_eltype, promote_op, promote_typeof,
     splat
 using Base.Broadcast: Broadcasted, broadcasted
 using Base.PermutedDimsArrays: CommutativeOps
+using Base.ExternalLibraryNames
 using OpenBLAS_jll
 using libblastrampoline_jll
 import Libdl

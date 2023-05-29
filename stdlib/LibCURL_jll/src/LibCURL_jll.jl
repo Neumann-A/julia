@@ -9,8 +9,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libcurl
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -18,13 +16,7 @@ artifact_dir::String = ""
 libcurl_handle::Ptr{Cvoid} = C_NULL
 libcurl_path::String = ""
 
-if Sys.iswindows()
-    const libcurl = "libcurl-4.dll"
-elseif Sys.isapple()
-    const libcurl = "@rpath/libcurl.4.dylib"
-else
-    const libcurl = "libcurl.so.4"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libcurl_handle = dlopen(libcurl)

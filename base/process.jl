@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 mutable struct Process <: AbstractPipe
     cmd::Cmd
     handle::Ptr{Cvoid}
@@ -78,7 +78,7 @@ const SpawnIO  = Union{IO, RawFD, OS_HANDLE}
 const SpawnIOs = Vector{SpawnIO} # convenience name for readability
 
 function as_cpumask(cpus::Vector{UInt16})
-    n = max(Int(maximum(cpus)), Int(ccall(:uv_cpumask_size, Cint, ())))
+    n = max(Int(maximum(cpus)), Int(ccall((:uv_cpumask_size, libuv), Cint, ())))
     cpumask = zeros(Bool, n)
     for i in cpus
         cpumask[i] = true
@@ -590,7 +590,7 @@ function kill(p::Process, signum::Integer=SIGTERM)
     iolock_begin()
     if process_running(p)
         @assert p.handle != C_NULL
-        err = ccall(:uv_process_kill, Int32, (Ptr{Cvoid}, Int32), p.handle, signum)
+        err = ccall((:uv_process_kill, libuv), Int32, (Ptr{Cvoid}, Int32), p.handle, signum)
         if err != 0 && err != UV_ESRCH
             throw(_UVError("kill", err))
         end

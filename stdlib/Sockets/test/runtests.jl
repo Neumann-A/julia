@@ -2,7 +2,7 @@
 
 using Sockets, Random, Test
 using Base: Experimental
-
+using Base.ExternalLibraryNames
 # set up a watchdog alarm for 10 minutes
 # so that we can attempt to get a "friendly" backtrace if something gets stuck
 # (although this'll also terminate any attempted debugging session)
@@ -15,10 +15,10 @@ function killjob(d)
         SIGINFO = 29
     end
     if @isdefined(SIGINFO)
-        ccall(:uv_kill, Cint, (Cint, Cint), getpid(), SIGINFO)
+        ccall((:uv_kill, libuv), Cint, (Cint, Cint), getpid(), SIGINFO)
         sleep(5) # Allow time for profile to collect and print before killing
     end
-    ccall(:uv_kill, Cint, (Cint, Cint), getpid(), Base.SIGTERM)
+    ccall((:uv_kill, libuv), Cint, (Cint, Cint), getpid(), Base.SIGTERM)
     nothing
 end
 sockets_watchdog_timer = Timer(t -> killjob("KILLING BY SOCKETS TEST WATCHDOG\n"), 600)

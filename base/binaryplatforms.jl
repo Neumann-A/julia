@@ -550,7 +550,7 @@ function os_str(p::AbstractPlatform)
             return "-apple-darwin"
         end
     elseif os(p) == "windows"
-        return "-w64-mingw32"
+        return "-pc-windows-msvc"
     elseif os(p) == "freebsd"
         osvn = os_version(p)
         if osvn !== nothing
@@ -634,7 +634,7 @@ end
 const os_mapping = Dict(
     "macos" => "-apple-darwin[\\d\\.]*",
     "freebsd" => "-(.*-)?freebsd[\\d\\.]*",
-    "windows" => "-w64-mingw32",
+    "windows" => "-pc-windows-msvc",
     "linux" => "-(.*-)?linux",
 )
 const libc_mapping = Dict(

@@ -7,6 +7,7 @@ using Base.Threads: SpinLock, threadpoolsize
 # for cfunction_closure
 include("testenv.jl")
 
+using Base.ExternalLibraryNames
 function killjob(d)
     Core.print(Core.stderr, d)
     if Sys.islinux()
@@ -15,10 +16,10 @@ function killjob(d)
         SIGINFO = 29
     end
     if @isdefined(SIGINFO)
-        ccall(:uv_kill, Cint, (Cint, Cint), getpid(), SIGINFO)
+        ccall((:uv_kill, libuv), Cint, (Cint, Cint), getpid(), SIGINFO)
         sleep(5) # Allow time for profile to collect and print before killing
     end
-    ccall(:uv_kill, Cint, (Cint, Cint), getpid(), Base.SIGTERM)
+    ccall((:uv_kill, libuv), Cint, (Cint, Cint), getpid(), Base.SIGTERM)
     nothing
 end
 
@@ -480,12 +481,12 @@ for period in (0.06, Dates.Millisecond(60))
             wait(c)
             t = Timer(period)
             wait(t)
-            ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
-            ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+            ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
+            ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
             wait(c)
             sleep(period)
-            ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
-            ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+            ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
+            ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
         end))
         wait(c)
         notify(c)

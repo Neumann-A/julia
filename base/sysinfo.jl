@@ -1,6 +1,7 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 module Sys
+using Base.ExternalLibraryNames
 @doc """
 Provide methods for retrieving information about hardware and the operating system.
 """ Sys
@@ -215,13 +216,13 @@ end
 function cpu_info()
     UVcpus = Ref{Ptr{UV_cpu_info_t}}()
     count = Ref{Int32}()
-    err = ccall(:uv_cpu_info, Int32, (Ptr{Ptr{UV_cpu_info_t}}, Ptr{Int32}), UVcpus, count)
+    err = ccall((:uv_cpu_info, libuv), Int32, (Ptr{Ptr{UV_cpu_info_t}}, Ptr{Int32}), UVcpus, count)
     Base.uv_error("uv_cpu_info", err)
     cpus = Vector{CPUinfo}(undef, count[])
     for i = 1:length(cpus)
         cpus[i] = CPUinfo(unsafe_load(UVcpus[], i))
     end
-    ccall(:uv_free_cpu_info, Cvoid, (Ptr{UV_cpu_info_t}, Int32), UVcpus[], count[])
+    ccall((:uv_free_cpu_info, libuv), Cvoid, (Ptr{UV_cpu_info_t}, Int32), UVcpus[], count[])
     return cpus
 end
 
@@ -232,7 +233,7 @@ Gets the current system uptime in seconds.
 """
 function uptime()
     uptime_ = Ref{Float64}()
-    err = ccall(:uv_uptime, Int32, (Ptr{Float64},), uptime_)
+    err = ccall((:uv_uptime, libuv), Int32, (Ptr{Float64},), uptime_)
     Base.uv_error("uv_uptime", err)
     return uptime_[]
 end
@@ -244,7 +245,7 @@ Get the load average. See: https://en.wikipedia.org/wiki/Load_(computing).
 """
 function loadavg()
     loadavg_ = Vector{Float64}(undef, 3)
-    ccall(:uv_loadavg, Cvoid, (Ptr{Float64},), loadavg_)
+    ccall((:uv_loadavg, libuv), Cvoid, (Ptr{Float64},), loadavg_)
     return loadavg_
 end
 
@@ -254,7 +255,7 @@ end
 Get the free memory of the system in bytes. The entire amount may not be available to the
 current process; use `Sys.free_memory()` for the actually available amount.
 """
-free_physical_memory() = ccall(:uv_get_free_memory, UInt64, ())
+free_physical_memory() = ccall((:uv_get_free_memory, libuv), UInt64, ())
 
 """
     Sys.total_physical_memory()
@@ -262,14 +263,14 @@ free_physical_memory() = ccall(:uv_get_free_memory, UInt64, ())
 Get the total memory in RAM (including that which is currently used) in bytes. The entire
 amount may not be available to the current process; see `Sys.total_memory()`.
 """
-total_physical_memory() = ccall(:uv_get_total_memory, UInt64, ())
+total_physical_memory() = ccall((:uv_get_total_memory, libuv), UInt64, ())
 
 """
     Sys.free_memory()
 
 Get the total free memory in RAM in bytes.
 """
-free_memory() = ccall(:uv_get_available_memory, UInt64, ())
+free_memory() = ccall((:uv_get_available_memory, libuv), UInt64, ())
 
 """
     Sys.total_memory()
@@ -279,7 +280,7 @@ This amount may be constrained, e.g., by Linux control groups. For the unconstra
 amount, see `Sys.physical_memory()`.
 """
 function total_memory()
-    constrained = ccall(:uv_get_constrained_memory, UInt64, ())
+    constrained = ccall((:uv_get_constrained_memory, libuv), UInt64, ())
     physical = total_physical_memory()
     if 0 < constrained <= physical
         return constrained
@@ -295,7 +296,7 @@ Get the process title. On some systems, will always return an empty string.
 """
 function get_process_title()
     buf = Vector{UInt8}(undef, 512)
-    err = ccall(:uv_get_process_title, Cint, (Ptr{UInt8}, Cint), buf, 512)
+    err = ccall((:uv_get_process_title, libuv), Cint, (Ptr{UInt8}, Cint), buf, 512)
     Base.uv_error("get_process_title", err)
     return unsafe_string(pointer(buf))
 end
@@ -306,7 +307,7 @@ end
 Set the process title. No-op on some operating systems.
 """
 function set_process_title(title::AbstractString)
-    err = ccall(:uv_set_process_title, Cint, (Cstring,), title)
+    err = ccall((:uv_set_process_title, libuv), Cint, (Cstring,), title)
     Base.uv_error("set_process_title", err)
 end
 

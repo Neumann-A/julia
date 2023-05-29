@@ -9,8 +9,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libuv
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -18,13 +16,7 @@ artifact_dir::String = ""
 libuv_handle::Ptr{Cvoid} = C_NULL
 libuv_path::String = ""
 
-if Sys.iswindows()
-    const libuv = "libuv-2.dll"
-elseif Sys.isapple()
-    const libuv = "@rpath/libuv.2.dylib"
-else
-    const libuv = "libuv.so.2"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libuv_handle = dlopen(libuv)

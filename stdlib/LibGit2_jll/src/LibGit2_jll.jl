@@ -9,8 +9,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libgit2
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -18,13 +16,7 @@ artifact_dir::String = ""
 libgit2_handle::Ptr{Cvoid} = C_NULL
 libgit2_path::String = ""
 
-if Sys.iswindows()
-    const libgit2 = "libgit2.dll"
-elseif Sys.isapple()
-    const libgit2 = "@rpath/libgit2.1.6.dylib"
-else
-    const libgit2 = "libgit2.so.1.6"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libgit2_handle = dlopen(libgit2)

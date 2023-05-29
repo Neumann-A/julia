@@ -17,6 +17,7 @@ function show(io::IO, err::DNSError)
                                       " (", Base.uverrorname(err.code), ")")
 end
 
+using Base.ExternalLibraryNames
 function uv_getaddrinfocb(req::Ptr{Cvoid}, status::Cint, addrinfo::Ptr{Cvoid})
     data = uv_req_data(req)
     if data != C_NULL
@@ -39,7 +40,7 @@ function uv_getaddrinfocb(req::Ptr{Cvoid}, status::Cint, addrinfo::Ptr{Cvoid})
                 end
                 addrinfo = ccall(:jl_next_from_addrinfo, Ptr{Cvoid}, (Ptr{Cvoid},), addrinfo)
             end
-            ccall(:uv_freeaddrinfo, Cvoid, (Ptr{Cvoid},), freeaddrinfo)
+            ccall((:uv_freeaddrinfo, libuv), Cvoid, (Ptr{Cvoid},), freeaddrinfo)
             schedule(t, addrs)
         end
     else
@@ -95,7 +96,7 @@ function getalladdrinfo(host::String)
             # req is still alive,
             # so make sure we don't get spurious notifications later
             uv_req_set_data(req, C_NULL)
-            ccall(:uv_cancel, Int32, (Ptr{Cvoid},), req) # try to let libuv know we don't care anymore
+            ccall((:uv_cancel, libuv), Int32, (Ptr{Cvoid},), req) # try to let libuv know we don't care anymore
         else
             # done with req
             Libc.free(req)
@@ -210,7 +211,7 @@ function getnameinfo(address::Union{IPv4, IPv6})
             # req is still alive,
             # so make sure we don't get spurious notifications later
             uv_req_set_data(req, C_NULL)
-            ccall(:uv_cancel, Int32, (Ptr{Cvoid},), req) # try to let libuv know we don't care anymore
+            ccall((:uv_cancel, libuv), Int32, (Ptr{Cvoid},), req) # try to let libuv know we don't care anymore
         else
             # done with req
             Libc.free(req)
@@ -332,7 +333,7 @@ function getipaddrs(addr_type::Type{T}=IPAddr; loopback::Bool=false) where T<:IP
             push!(addresses, IPv6(ntoh(addr6[])))
         end
     end
-    ccall(:uv_free_interface_addresses, Cvoid, (Ptr{UInt8}, Int32), addr, count)
+    ccall((:uv_free_interface_addresses, libuv), Cvoid, (Ptr{UInt8}, Int32), addr, count)
     return addresses
 end
 

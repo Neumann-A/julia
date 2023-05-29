@@ -395,6 +395,7 @@ end
     end).task.exception === testerr
 end
 
+using Base.ExternalLibraryNames
 @testset "Timer / AsyncCondition triggering and race #12719" begin
     let tc = Ref(0)
         t = Timer(0) do t
@@ -431,13 +432,13 @@ end
         end
         cb = first(async.cond.waitq)
         @test isopen(async)
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
         @test isempty(Base.Workqueue)
         Base.process_events() # schedule event
         Sys.iswindows() && Base.process_events() # schedule event (windows?)
         @test length(Base.Workqueue) == 1
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
         @test tc[] == 0
         yield() # consume event
         @test tc[] == 1
@@ -446,8 +447,8 @@ end
         @test tc[] == 2
         sleep(0.1) # no further events
         @test tc[] == 2
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
         Base.process_events() # schedule event
         Sys.iswindows() && Base.process_events() # schedule event (windows?)
         close(async) # and close
@@ -468,7 +469,7 @@ end
         end
         cb = first(async.cond.waitq)
         @test isopen(async)
-        ccall(:uv_async_send, Cvoid, (Ptr{Cvoid},), async)
+        ccall((:uv_async_send, libuv), Cvoid, (Ptr{Cvoid},), async)
         Base.process_events() # schedule event
         Sys.iswindows() && Base.process_events() # schedule event (windows)
         close(async)
@@ -542,7 +543,7 @@ end
 # make sure that we don't accidentally create a one-shot timer
 let
     t = Timer(Returns(nothing), 10, interval=0.00001)
-    @test ccall(:uv_timer_get_repeat, UInt64, (Ptr{Cvoid},), t) == 1
+    @test ccall((:uv_timer_get_repeat, libuv), UInt64, (Ptr{Cvoid},), t) == 1
     close(t)
 end
 

@@ -483,7 +483,7 @@ Printf.tofloat(x::MyArbitraryPrecisionType) = BigFloat(x)
 tofloat(x) = Float64(x)
 tofloat(x::Base.IEEEFloat) = x
 tofloat(x::BigFloat) = x
-
+using Base.ExternalLibraryNames
 _snprintf(ptr, siz, str, arg) =
     @ccall "libmpfr".mpfr_snprintf(ptr::Ptr{UInt8}, siz::Csize_t, str::Ptr{UInt8};
                                    arg::Ref{BigFloat})::Cint

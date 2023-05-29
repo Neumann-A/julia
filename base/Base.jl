@@ -122,6 +122,8 @@ include("gcutils.jl")
 include("generator.jl")
 include("reflection.jl")
 include("options.jl")
+include("external_libnames.jl")
+using .ExternalLibraryNames
 
 # define invoke(f, T, args...; kwargs...), without kwargs wrapping
 # to forward to invoke

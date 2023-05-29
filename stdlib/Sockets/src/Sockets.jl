@@ -33,6 +33,7 @@ export
 
 import Base: isless, show, print, parse, bind, convert, isreadable, iswritable, alloc_buf_hook, _uv_hook_close
 
+using Base.ExternalLibraryNames
 using Base: LibuvStream, LibuvServer, PipeEndpoint, @handle_as, uv_error, associate_julia_struct, uvfinalize,
     notify_error, uv_req_data, uv_req_set_data, preserve_handle, unpreserve_handle, _UVError, IOError,
     eventloop, StatusUninit, StatusInit, StatusConnecting, StatusOpen, StatusClosing, StatusClosed, StatusActive,
@@ -86,7 +87,7 @@ function TCPSocket(; delay=true)
     tcp = TCPSocket(Libc.malloc(Base._sizeof_uv_tcp), StatusUninit)
     af_spec = delay ? 0 : 2   # AF_UNSPEC is 0, AF_INET is 2
     iolock_begin()
-    err = ccall(:uv_tcp_init_ex, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cuint),
+    err = ccall((:uv_tcp_init_ex, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cuint),
                 eventloop(), tcp.handle, af_spec)
     uv_error("failed to create tcp socket", err)
     tcp.status = StatusInit
@@ -97,7 +98,7 @@ end
 function TCPSocket(fd::OS_HANDLE)
     tcp = TCPSocket()
     iolock_begin()
-    err = ccall(:uv_tcp_open, Int32, (Ptr{Cvoid}, OS_HANDLE), tcp.handle, fd)
+    err = ccall((:uv_tcp_open, libuv), Int32, (Ptr{Cvoid}, OS_HANDLE), tcp.handle, fd)
     uv_error("tcp_open", err)
     tcp.status = StatusOpen
     iolock_end()
@@ -131,7 +132,7 @@ function TCPServer(; delay=true)
     tcp = TCPServer(Libc.malloc(Base._sizeof_uv_tcp), StatusUninit)
     af_spec = delay ? 0 : 2   # AF_UNSPEC is 0, AF_INET is 2
     iolock_begin()
-    err = ccall(:uv_tcp_init_ex, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cuint),
+    err = ccall((:uv_tcp_init_ex, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cuint),
                 eventloop(), tcp.handle, af_spec)
     uv_error("failed to create tcp server", err)
     tcp.status = StatusInit
@@ -189,7 +190,7 @@ end
 function UDPSocket()
     this = UDPSocket(Libc.malloc(Base._sizeof_uv_udp), StatusUninit)
     iolock_begin()
-    err = ccall(:uv_udp_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
+    err = ccall((:uv_udp_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
                 eventloop(), this.handle)
     uv_error("failed to create udp socket", err)
     this.status = StatusInit
@@ -300,16 +301,16 @@ function setopt(sock::UDPSocket; multicast_loop=nothing, multicast_ttl=nothing, 
         error("Cannot set options on uninitialized socket")
     end
     if multicast_loop !== nothing
-        uv_error("multicast_loop", ccall(:uv_udp_set_multicast_loop, Cint, (Ptr{Cvoid}, Cint), sock.handle, multicast_loop) < 0)
+        uv_error("multicast_loop", ccall((:uv_udp_set_multicast_loop, libuv), Cint, (Ptr{Cvoid}, Cint), sock.handle, multicast_loop) < 0)
     end
     if multicast_ttl !== nothing
-        uv_error("multicast_ttl", ccall(:uv_udp_set_multicast_ttl, Cint, (Ptr{Cvoid}, Cint), sock.handle, multicast_ttl))
+        uv_error("multicast_ttl", ccall((:uv_udp_set_multicast_ttl, libuv), Cint, (Ptr{Cvoid}, Cint), sock.handle, multicast_ttl))
     end
     if enable_broadcast !== nothing
-        uv_error("enable_broadcast", ccall(:uv_udp_set_broadcast, Cint, (Ptr{Cvoid}, Cint), sock.handle, enable_broadcast))
+        uv_error("enable_broadcast", ccall((:uv_udp_set_broadcast, libuv), Cint, (Ptr{Cvoid}, Cint), sock.handle, enable_broadcast))
     end
     if ttl !== nothing
-        uv_error("ttl", ccall(:uv_udp_set_ttl, Cint, (Ptr{Cvoid}, Cint), sock.handle, ttl))
+        uv_error("ttl", ccall((:uv_udp_set_ttl, libuv), Cint, (Ptr{Cvoid}, Cint), sock.handle, ttl))
     end
     iolock_end()
     nothing
@@ -343,8 +344,8 @@ function recvfrom(sock::UDPSocket)
     if sock.status != StatusInit && sock.status != StatusOpen && sock.status != StatusActive
         error("UDPSocket is not initialized and open")
     end
-    if ccall(:uv_is_active, Cint, (Ptr{Cvoid},), sock.handle) == 0
-        err = ccall(:uv_udp_recv_start, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+    if ccall((:uv_is_active, libuv), Cint, (Ptr{Cvoid},), sock.handle) == 0
+        err = ccall((:uv_udp_recv_start, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
                     sock,
                     @cfunction(Base.uv_alloc_buf, Cvoid, (Ptr{Cvoid}, Csize_t, Ptr{Cvoid})),
                     @cfunction(uv_recvcb, Cvoid, (Ptr{Cvoid}, Cssize_t, Ptr{Cvoid}, Ptr{Cvoid}, Cuint)))
@@ -404,7 +405,7 @@ function uv_recvcb(handle::Ptr{Cvoid}, nread::Cssize_t, buf::Ptr{Cvoid}, addr::P
         end
         if sock.status == StatusActive && isempty(sock.recvnotify)
             sock.status = StatusOpen
-            ccall(:uv_udp_recv_stop, Cint, (Ptr{Cvoid},), sock)
+            ccall((:uv_udp_recv_stop, libuv), Cint, (Ptr{Cvoid},), sock)
         end
     finally
         unlock(sock.recvnotify)
@@ -576,7 +577,7 @@ function nagle(sock::Union{TCPServer, TCPSocket}, enable::Bool)
     # disable or enable Nagle's algorithm on all OSes
     iolock_begin()
     check_open(sock)
-    err = ccall(:uv_tcp_nodelay, Cint, (Ptr{Cvoid}, Cint), sock.handle, Cint(!enable))
+    err = ccall((:uv_tcp_nodelay, libuv), Cint, (Ptr{Cvoid}, Cint), sock.handle, Cint(!enable))
     # TODO: check err
     iolock_end()
     return err
@@ -648,7 +649,7 @@ end
 function trylisten(sock::LibuvServer; backlog::Integer=BACKLOG_DEFAULT)
     iolock_begin()
     check_open(sock)
-    err = ccall(:uv_listen, Cint, (Ptr{Cvoid}, Cint, Ptr{Cvoid}),
+    err = ccall((:uv_listen, libuv), Cint, (Ptr{Cvoid}, Cint, Ptr{Cvoid}),
                 sock, backlog, @cfunction(uv_connectioncb, Cvoid, (Ptr{Cvoid}, Cint)))
     sock.status = StatusActive
     iolock_end()
@@ -662,7 +663,7 @@ function accept_nonblock(server::TCPServer, client::TCPSocket)
     if client.status != StatusInit
         error("client TCPSocket is not in initialization state")
     end
-    err = ccall(:uv_accept, Int32, (Ptr{Cvoid}, Ptr{Cvoid}), server.handle, client.handle)
+    err = ccall((:uv_accept, libuv), Int32, (Ptr{Cvoid}, Ptr{Cvoid}), server.handle, client.handle)
     if err == 0
         client.status = StatusOpen
     end
@@ -741,7 +742,7 @@ function udp_set_membership(sock::UDPSocket, group_addr::String,
     if interface_addr === nothing
         interface_addr = C_NULL
     end
-    r = ccall(:uv_udp_set_membership, Cint,
+    r = ccall((:uv_udp_set_membership, libuv), Cint,
               (Ptr{Cvoid}, Cstring, Cstring, Cint),
               sock.handle, group_addr, interface_addr, operation)
     uv_error("uv_udp_set_membership", r)

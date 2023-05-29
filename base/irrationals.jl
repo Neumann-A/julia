@@ -2,6 +2,8 @@
 
 ## general machinery for irrational mathematical constants
 
+using Base.ExternalLibraryNames
+
 """
     AbstractIrrational <: Real
 
@@ -209,13 +211,14 @@ end
 macro irrational(sym, def)
     irrational(sym, :(big($(esc(sym)))), def)
 end
+
 function irrational(sym, val, def)
     esym = esc(sym)
     qsym = esc(Expr(:quote, sym))
     bigconvert = isa(def,Symbol) ? quote
         function Base.BigFloat(::Irrational{$qsym}, r::MPFR.MPFRRoundingMode=MPFR.ROUNDING_MODE[]; precision=precision(BigFloat))
             c = BigFloat(;precision=precision)
-            ccall(($(string("mpfr_const_", def)), :libmpfr),
+            ccall(($(string("mpfr_const_", def)), libmpfr),
                   Cint, (Ref{BigFloat}, MPFR.MPFRRoundingMode), c, r)
             return c
         end

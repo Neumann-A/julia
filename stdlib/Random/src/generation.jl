@@ -76,11 +76,12 @@ function _rand!(rng::AbstractRNG, z::BigFloat, sp::SamplerBigFloat, ::CloseOpen1
     z
 end
 
+using Base.ExternalLibraryNames
 function _rand!(rng::AbstractRNG, z::BigFloat, sp::SamplerBigFloat, ::CloseOpen01{BigFloat})
     randbool = _rand!(rng, z, sp)
     z.exp = 0
     randbool &&
-        ccall((:mpfr_sub_d, :libmpfr), Int32,
+        ccall((:mpfr_sub_d, libmpfr), Int32,
               (Ref{BigFloat}, Ref{BigFloat}, Cdouble, Base.MPFR.MPFRRoundingMode),
               z, z, 0.5, Base.MPFR.ROUNDING_MODE[])
     z
@@ -91,7 +92,7 @@ end
 function _rand!(rng::AbstractRNG, z::BigFloat, sp::SamplerBigFloat, ::CloseOpen01{BigFloat},
                 ::Nothing)
     _rand!(rng, z, sp, CloseOpen12(BigFloat))
-    ccall((:mpfr_sub_ui, :libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, Base.MPFR.MPFRRoundingMode),
+    ccall((:mpfr_sub_ui, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, Base.MPFR.MPFRRoundingMode),
           z, z, 1, Base.MPFR.ROUNDING_MODE[])
     z
 end

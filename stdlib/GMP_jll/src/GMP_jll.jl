@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libgmp, libgmpxx
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -19,16 +17,7 @@ libgmp_path::String = ""
 libgmpxx_handle::Ptr{Cvoid} = C_NULL
 libgmpxx_path::String = ""
 
-if Sys.iswindows()
-    const libgmp = "libgmp-10.dll"
-    const libgmpxx = "libgmpxx-4.dll"
-elseif Sys.isapple()
-    const libgmp = "@rpath/libgmp.10.dylib"
-    const libgmpxx = "@rpath/libgmpxx.4.dylib"
-else
-    const libgmp = "libgmp.so.10"
-    const libgmpxx = "libgmpxx.so.4"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libgmp_handle = dlopen(libgmp)

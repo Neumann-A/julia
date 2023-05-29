@@ -11,6 +11,7 @@ using Base64: base64decode
 using NetworkOptions
 using Printf: @printf
 using SHA: sha1, sha256
+using Base.ExternalLibraryNames
 
 export with, GitRepo, GitConfig
 
@@ -983,7 +984,7 @@ function ensure_initialized()
 end
 
 @noinline function initialize()
-    @check ccall((:git_libgit2_init, :libgit2), Cint, ())
+    @check ccall((:git_libgit2_init, libgit2), Cint, ())
 
     cert_loc = NetworkOptions.ca_roots()
     cert_loc !== nothing && set_ssl_cert_locations(cert_loc)
@@ -991,7 +992,7 @@ end
     atexit() do
         # refcount zero, no objects to be finalized
         if Threads.atomic_sub!(REFCOUNT, 1) == 1
-            ccall((:git_libgit2_shutdown, :libgit2), Cint, ())
+            ccall((:git_libgit2_shutdown, libgit2), Cint, ())
         end
     end
 end
