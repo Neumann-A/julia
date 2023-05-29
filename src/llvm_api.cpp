@@ -9,7 +9,7 @@
 #define __STDC_CONSTANT_MACROS
 #endif
 
-#include <jitlayers.h>
+#include "jitlayers.h"
 
 #include <llvm-c/Core.h>
 #include <llvm-c/Error.h>
