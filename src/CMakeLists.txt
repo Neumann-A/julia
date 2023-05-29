@@ -52,9 +52,9 @@ foreach(file IN LISTS jl_internal) # TODO better directly set the names
     endforeach()
 endforeach()
 
-add_library(julia-internal SHARED ${jl_internal_srcs} ${jl_internal_proc_srcs} ${jl_internal_signals_srcs})
+add_library(julia-internal SHARED ${jl_internal_srcs} ${jl_internal_proc_srcs} ${jl_internal_signals_srcs} $<TARGET_OBJECTS:support> $<TARGET_OBJECTS:setjmp_impl>)
 add_library(jl::julia-internal ALIAS julia-internal)
-target_link_libraries(julia-internal PRIVATE jl::julia jl::support jl::flisp jl::libuv jl::valgrind jl::getopt jl::llvm)
+target_link_libraries(julia-internal PRIVATE jl::julia jl::flisp jl::libuv jl::valgrind jl::getopt jl::llvm)
 if(WIN32)
     target_link_libraries(julia-internal PRIVATE Dbghelp.lib Winmm.lib Ws2_32.lib)
 endif()
@@ -72,11 +72,13 @@ target_include_directories(julia-internal PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURR
 
 if(MSVC)
  #MSVC has no real 128bit intrinsics so take them from llvm
-target_link_options(julia-internal PRIVATE 
-                        clang_rt.builtins-x86_64.lib 
-                        -NODEFAULTLIB:libcmt 
-                        -export:__udivti3=__udivti3 
+target_link_libraries(julia-internal PRIVATE clang_rt.builtins-x86_64.lib)
+target_link_options(julia-internal PRIVATE
+                        -NODEFAULTLIB:libcmt
+                        -export:__udivti3=__udivti3
                         -export:__divti3=__divti3
+                        -export:__umodti3=__umodti3
+                        -export:__modti3=__modti3
                     )
 endif()
 

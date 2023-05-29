@@ -12,7 +12,7 @@ if(WIN32)
     endif()
 endif()
 
-add_library(support STATIC ${support_SRCS})
+add_library(support OBJECT ${support_SRCS})
 add_library(jl::support ALIAS support)
 target_compile_definitions(support PRIVATE "JL_LIBRARY_EXPORTS_INTERNAL")
 target_include_directories(support PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")

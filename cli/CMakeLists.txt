@@ -22,7 +22,7 @@ endif()
 
 add_library(julia SHARED loader_lib.c jl_exports.h loader.h ${jl_trampoline})
 add_library(jl::julia ALIAS julia)
-target_compile_definitions(julia PRIVATE "JL_LIBRARY_EXPORTS" "DEP_LIBS=\"${JL_DEP_LIBS}\"")
+target_compile_definitions(julia PRIVATE "JL_LIBRARY_EXPORTS" "DEP_LIBS=\"${JL_DEP_LIBS}\"" "LIBJULIA_NAME=\"$<TARGET_FILE_NAME:julia>\"")
 target_include_directories(julia PUBLIC "../src/support")
 
 
