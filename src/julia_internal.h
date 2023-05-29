@@ -1255,6 +1255,9 @@ JL_DLLEXPORT extern const char *jl_crtdll_basename;
 extern void *jl_ntdll_handle;
 extern void *jl_kernel32_handle;
 extern void *jl_crtdll_handle;
+#ifdef _MSC_VER
+extern void *jl_vcruntime_handle;
+#endif
 extern void *jl_winsock_handle;
 void win32_formatmessage(DWORD code, char *reason, int len) JL_NOTSAFEPOINT;
 #endif

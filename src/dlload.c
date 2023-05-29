@@ -60,8 +60,11 @@ static int endswith_extension(const char *path) JL_NOTSAFEPOINT
 }
 
 #ifdef _OS_WINDOWS_
+#ifndef _MSC_VER
 #define CRTDLL_BASENAME "msvcrt"
-
+#else
+#define CRTDLL_BASENAME "ucrtbase"
+#endif
 JL_DLLEXPORT const char *jl_crtdll_basename = CRTDLL_BASENAME;
 const char *jl_crtdll_name = CRTDLL_BASENAME ".dll";
 
@@ -443,14 +446,18 @@ JL_DLLEXPORT const char *jl_dlfind(const char *f_name)
     if (jl_dlsym(jl_libjulia_handle, f_name, &dummy, 0))
         return JL_LIBJULIA_DL_LIBNAME;
 #ifdef _OS_WINDOWS_
+    if (jl_dlsym(jl_winsock_handle, f_name, &dummy, 0))
+        return "ws2_32";
     if (jl_dlsym(jl_kernel32_handle, f_name, &dummy, 0))
         return "kernel32";
+#ifdef _MSC_VER
+    if (jl_dlsym(jl_vcruntime_handle, f_name, &dummy, 0)) // Prefer vcruntime over crt
+        return "vcruntime140";
+#endif
     if (jl_dlsym(jl_crtdll_handle, f_name, &dummy, 0)) // Prefer crtdll over ntdll
         return jl_crtdll_basename;
     if (jl_dlsym(jl_ntdll_handle, f_name, &dummy, 0))
         return "ntdll";
-    if (jl_dlsym(jl_winsock_handle, f_name, &dummy, 0))
-        return "ws2_32";
 #endif
     // additional common libraries (libc?) could be added here, but in general,
     // it is better to specify the library explicitly in the code. This exists

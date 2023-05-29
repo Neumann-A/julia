@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#ifndef _MSC_VER
 #include <libgen.h> // defines dirname
+#endif
 
 #if !defined(_OS_WINDOWS_) || defined(_COMPILER_GCC_)
 #include <getopt.h>
@@ -390,6 +392,9 @@ JL_DLLEXPORT void *jl_exe_handle;
 #ifdef _OS_WINDOWS_
 void *jl_ntdll_handle;
 void *jl_kernel32_handle;
+#ifdef _MSC_VER
+void *jl_vcruntime_handle;
+#endif
 void *jl_crtdll_handle;
 void *jl_winsock_handle;
 extern const char *jl_crtdll_name;
@@ -809,6 +814,9 @@ JL_DLLEXPORT void julia_init(JL_IMAGE_SEARCH rel)
     jl_RTLD_DEFAULT_handle = jl_libjulia_internal_handle;
     jl_ntdll_handle = jl_dlopen("ntdll.dll", JL_RTLD_NOLOAD); // bypass julia's pathchecking for system dlls
     jl_kernel32_handle = jl_dlopen("kernel32.dll", JL_RTLD_NOLOAD);
+#ifdef _MSC_VER
+    jl_vcruntime_handle = jl_dlopen("vcruntime140.dll", JL_RTLD_NOLOAD);
+#endif
     jl_crtdll_handle = jl_dlopen(jl_crtdll_name, JL_RTLD_NOLOAD);
     jl_winsock_handle = jl_dlopen("ws2_32.dll", JL_RTLD_NOLOAD);
     HMODULE jl_dbghelp = (HMODULE) jl_dlopen("dbghelp.dll", JL_RTLD_NOLOAD);
