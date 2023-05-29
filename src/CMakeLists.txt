@@ -85,11 +85,11 @@ endif()
 add_dependencies(julia-internal gen_julia_flisp_boot_inc)
 
 set(jl_codegen
-       "codegen;jitlayers;aotcompile;debuginfo;disasm;llvm-simdloop;llvm-muladd"
-       "llvm-final-gc-lowering;llvm-pass-helpers;llvm-late-gc-lowering;llvm-ptls"
-       "llvm-lower-handlers;llvm-gc-invariant-verifier;llvm-propagate-addrspaces"
-       "llvm-multiversioning;llvm-alloc-opt;llvm-alloc-helpers;cgmemmgr;llvm-remove-addrspaces"
-       "llvm-remove-ni;llvm-julia-licm;llvm-demote-float16;llvm-cpufeatures;pipeline"
+     "codegen;jitlayers;aotcompile;debuginfo;disasm;llvm-simdloop;llvm-muladd"
+     "llvm-final-gc-lowering;llvm-pass-helpers;llvm-late-gc-lowering;llvm-ptls"
+     "llvm-lower-handlers;llvm-gc-invariant-verifier;llvm-propagate-addrspaces"
+     "llvm-multiversioning;llvm-alloc-opt;llvm-alloc-helpers;cgmemmgr;llvm-remove-addrspaces"
+     "llvm-remove-ni;llvm-julia-licm;llvm-demote-float16;llvm-cpufeatures;pipeline;llvm_api"
 )
 
 set(jl_codegen_srcs "")
