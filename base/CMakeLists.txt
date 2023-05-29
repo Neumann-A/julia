@@ -152,7 +152,7 @@ add_custom_target(
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" --output-ji "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
         --startup-file=no --warn-overwrite=yes -g${BOOTSTRAP_DEBUG_LEVEL} 
-        #--trace-compile=stderr 
+        --trace-compile=stderr 
         -O0 "${JL_BASE_DIR}/compiler/compiler.jl"
     COMMAND_EXPAND_LISTS VERBATIM
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
@@ -163,16 +163,18 @@ install(FILES "${JULA_PRECOMPILE_DIR}/corecompiler.ji" DESTINATION "${CMAKE_INST
 
 add_custom_target(
     sys_ji ALL
-    #COMMAND set JULIA_NUM_THREADS=1
+    COMMAND echo "Starting sysimg.jl"
+    COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/sys.ji"
         ${JULIA_SYSIMG_BUILD_FLAGS}
         --startup-file=no --warn-overwrite=yes 
         -g${BOOTSTRAP_DEBUG_LEVEL} 
-        #--trace-compile=stderr
+        --trace-compile=stderr
         -O0 
         --sysimage "${JULA_PRECOMPILE_DIR}/corecompiler.ji" sysimg.jl "${JL_BASE_DIR}/"
+    COMMAND echo "Finished sysimg.jl"
     COMMAND_EXPAND_LISTS VERBATIM
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys.ji"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
@@ -184,7 +186,8 @@ install(FILES "${JULA_PRECOMPILE_DIR}/sys.ji" DESTINATION "${CMAKE_INSTALL_LIBDI
 
 add_custom_target(
     sysimg_builder ALL
-    #COMMAND set JULIA_NUM_THREADS=1
+    COMMAND echo "Running generate_precompile.jl"
+    COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/sys-o.a"
@@ -192,10 +195,11 @@ add_custom_target(
         --startup-file=no 
         --warn-overwrite=yes 
         -g${BOOTSTRAP_DEBUG_LEVEL} 
-        #--trace-compile=stderr 
+        --trace-compile=stderr 
         -O3
         --sysimage "${JULA_PRECOMPILE_DIR}/sys.ji" 
         "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
+    COMMAND echo "Finished generate_precompile.jl"
     COMMAND_EXPAND_LISTS VERBATIM
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys-o.a"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
@@ -204,6 +208,8 @@ add_custom_target(
 
 separate_arguments(c_linker_flags NATIVE_COMMAND "${CMAKE_SHARED_LINKER_FLAGS}")
 separate_arguments(c_linker_flags_${build_type} NATIVE_COMMAND "${CMAKE_SHARED_LINKER_FLAGS_${build_type}}")
+
+string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_ARCHIVE}")
 
 add_custom_target(
     sys_shared ALL
@@ -215,12 +221,11 @@ add_custom_target(
         #"/pdb:${JULA_PRECOMPILE_DIR}/sys.pdb"
         "${CMAKE_LIBRARY_PATH_FLAG}${JULA_PRECOMPILE_DIR}"
         "${CMAKE_LIBRARY_PATH_FLAG}${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
-        "${CMAKE_LINK_LIBRARY_USING_WHOLE_ARCHIVE}${JULA_PRECOMPILE_DIR}/sys-o.a"
+        "${whole_archive}${JULA_PRECOMPILE_DIR}/sys-o.a"
         "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_FILE_NAME:julia>"
         "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_FILE_NAME:julia-internal>"
         #-g${BOOTSTRAP_DEBUG_LEVEL} 
         #--trace-compile=stderr 
-        -O3
     COMMAND_EXPAND_LISTS VERBATIM
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys.dll"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
