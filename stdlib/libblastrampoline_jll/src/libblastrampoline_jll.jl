@@ -19,7 +19,7 @@ libblastrampoline_path::String = ""
 using Base.ExternalLibraryNames
 
 function __init__()
-    global libblastrampoline_handle = dlopen(:libblastrampoline)
+    global libblastrampoline_handle = dlopen(libblastrampoline)
     global libblastrampoline_path = dlpath(libblastrampoline_handle)
     global artifact_dir = dirname(Sys.BINDIR)
     LIBPATH[] = dirname(libblastrampoline_path)

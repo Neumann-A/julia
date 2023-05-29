@@ -190,7 +190,7 @@ add_custom_target(
     COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
-        --output-ji "${JULA_PRECOMPILE_DIR}/sys-o.a"
+        --output-ji "${JULA_PRECOMPILE_DIR}/sys-o.lib"
         ${JULIA_SYSIMG_BUILD_FLAGS}
         --startup-file=no 
         --warn-overwrite=yes 
@@ -201,7 +201,7 @@ add_custom_target(
         "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
     COMMAND echo "Finished generate_precompile.jl"
     COMMAND_EXPAND_LISTS VERBATIM
-    BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys-o.a"
+    BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys-o.lib"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS sys_ji
 )
@@ -213,17 +213,17 @@ string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_AR
 
 add_custom_target(
     sys_shared ALL
-    COMMAND ${CMAKE_C_COMPILER}
+    COMMAND ${CMAKE_LINKER}
         ${c_linker_flags} 
         ${c_linker_flags_${build_type}}
         /DLL
         "/out:${JULA_PRECOMPILE_DIR}/sys.dll"
         #"/pdb:${JULA_PRECOMPILE_DIR}/sys.pdb"
         "${CMAKE_LIBRARY_PATH_FLAG}${JULA_PRECOMPILE_DIR}"
-        "${CMAKE_LIBRARY_PATH_FLAG}${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
-        "${whole_archive}${JULA_PRECOMPILE_DIR}/sys-o.a"
-        "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_FILE_NAME:julia>"
-        "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_FILE_NAME:julia-internal>"
+        "${CMAKE_LIBRARY_PATH_FLAG}${CMAKE_LIBRARY_OUTPUT_DIRECTORY}" # Could also use $<TARGET_LINKER_FILE_DIR:tgt>
+        "${whole_archive}${JULA_PRECOMPILE_DIR}/sys-o.lib"
+        "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_LINKER_FILE:julia>"
+        "${CMAKE_LINK_LIBRARY_FLAG}$<TARGET_LINKER_FILE:julia-internal>"
         #-g${BOOTSTRAP_DEBUG_LEVEL} 
         #--trace-compile=stderr 
     COMMAND_EXPAND_LISTS VERBATIM
