@@ -19,9 +19,9 @@ pipe_fds = fill((Base.INVALID_OS_HANDLE, Base.INVALID_OS_HANDLE), n)
 
 for i in 1:n
     if Sys.iswindows() || i > n ÷ 2
-        uv_error("socketpair", ccall(:uv_socketpair, Cint, (Cint, Cint, Ptr{NTuple{2, Base.OS_HANDLE}}, Cint, Cint), 1, (Sys.iswindows() ? 6 : 0), Ref(pipe_fds, i), 0, 0))
+        uv_error("socketpair", ccall((:uv_socketpair, libuv), Cint, (Cint, Cint, Ptr{NTuple{2, Base.OS_HANDLE}}, Cint, Cint), 1, (Sys.iswindows() ? 6 : 0), Ref(pipe_fds, i), 0, 0))
     else
-        uv_error("pipe", ccall(:uv_pipe, Cint, (Ptr{NTuple{2, Base.OS_HANDLE}}, Cint, Cint), Ref(pipe_fds, i), 0, 0))
+        uv_error("pipe", ccall((:uv_pipe, libuv), Cint, (Ptr{NTuple{2, Base.OS_HANDLE}}, Cint, Cint), Ref(pipe_fds, i), 0, 0))
     end
     Ctype = Sys.iswindows() ? Ptr{Cvoid} : Cint
     FDmax = Sys.iswindows() ? 0x7fff : (n + 60 + (isdefined(Main, :Revise) * 30)) # expectations on reasonable values

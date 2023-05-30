@@ -4,11 +4,11 @@
 baremodule MPFR_jll
 using Base, Libdl, GMP_jll
 Base.Experimental.@compiler_options compile=min optimize=0 infer=false
+using Base.ExternalLibraryNames
 
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libmpfr
 
 # These get calculated in __init__()
 const PATH = Ref("")
@@ -17,13 +17,6 @@ artifact_dir::String = ""
 libmpfr_handle::Ptr{Cvoid} = C_NULL
 libmpfr_path::String = ""
 
-if Sys.iswindows()
-    const libmpfr = "libmpfr-6.dll"
-elseif Sys.isapple()
-    const libmpfr = "@rpath/libmpfr.6.dylib"
-else
-    const libmpfr = "libmpfr.so.6"
-end
 
 function __init__()
     global libmpfr_handle = dlopen(libmpfr)

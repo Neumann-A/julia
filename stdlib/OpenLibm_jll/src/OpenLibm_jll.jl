@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libopenlibm
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -17,13 +15,7 @@ artifact_dir::String = ""
 libopenlibm_handle::Ptr{Cvoid} = C_NULL
 libopenlibm_path::String = ""
 
-if Sys.iswindows()
-    const libopenlibm = "libopenlibm.dll"
-elseif Sys.isapple()
-    const libopenlibm = "@rpath/libopenlibm.4.dylib"
-else
-    const libopenlibm = "libopenlibm.so.4"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libopenlibm_handle = dlopen(libopenlibm)

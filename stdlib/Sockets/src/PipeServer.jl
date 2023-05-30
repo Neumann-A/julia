@@ -14,10 +14,11 @@ mutable struct PipeServer <: LibuvServer
     end
 end
 
+using Base.ExternalLibraryNames
 function PipeServer()
     pipe = PipeServer(Libc.malloc(Base._sizeof_uv_named_pipe), StatusUninit)
     iolock_begin()
-    err = ccall(:uv_pipe_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), eventloop(), pipe.handle, 0)
+    err = ccall((:uv_pipe_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), eventloop(), pipe.handle, 0)
     uv_error("failed to create pipe server", err)
     pipe.status = StatusInit
     iolock_end()
@@ -33,7 +34,7 @@ function accept_nonblock(server::PipeServer, client::PipeEndpoint)
     if client.status != StatusInit
         error("client is already in use or has been closed")
     end
-    err = ccall(:uv_accept, Int32, (Ptr{Cvoid}, Ptr{Cvoid}), server.handle, client.handle)
+    err = ccall((:uv_accept, libuv), Int32, (Ptr{Cvoid}, Ptr{Cvoid}), server.handle, client.handle)
     if err == 0
         client.status = StatusOpen
     end
@@ -50,7 +51,7 @@ end
 function bind(server::PipeServer, name::AbstractString)
     iolock_begin()
     @assert server.status == StatusInit
-    err = ccall(:uv_pipe_bind, Int32, (Ptr{Cvoid}, Cstring),
+    err = ccall((:uv_pipe_bind, libuv), Int32, (Ptr{Cvoid}, Cstring),
                 server, name)
     if err != 0
         iolock_end()
@@ -85,7 +86,7 @@ function connect!(sock::PipeEndpoint, path::AbstractString)
     @assert sock.status == StatusInit
     req = Libc.malloc(Base._sizeof_uv_connect)
     uv_req_set_data(req, C_NULL)
-    ccall(:uv_pipe_connect, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}), req, sock.handle, path,
+    ccall((:uv_pipe_connect, libuv), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}), req, sock.handle, path,
           @cfunction(uv_connectcb, Cvoid, (Ptr{Cvoid}, Cint)))
     sock.status = StatusConnecting
     iolock_end()

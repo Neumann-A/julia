@@ -1,6 +1,7 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 ## async event notifications
+using Base.ExternalLibraryNames
 
 """
     AsyncCondition()
@@ -23,7 +24,7 @@ mutable struct AsyncCondition
         this = new(Libc.malloc(_sizeof_uv_async), ThreadSynchronizer(), true, false)
         iolock_begin()
         associate_julia_struct(this.handle, this)
-        err = ccall(:uv_async_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
+        err = ccall((:uv_async_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}),
             eventloop(), this, @cfunction(uv_asynccb, Cvoid, (Ptr{Cvoid},)))
         if err != 0
             #TODO: this codepath is currently not tested
@@ -102,11 +103,11 @@ mutable struct Timer
         this = new(Libc.malloc(_sizeof_uv_timer), ThreadSynchronizer(), true, false)
         associate_julia_struct(this.handle, this)
         iolock_begin()
-        err = ccall(:uv_timer_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), loop, this)
+        err = ccall((:uv_timer_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}), loop, this)
         @assert err == 0
         finalizer(uvfinalize, this)
-        ccall(:uv_update_time, Cvoid, (Ptr{Cvoid},), loop)
-        err = ccall(:uv_timer_start, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, UInt64, UInt64),
+        ccall((:uv_update_time, libuv), Cvoid, (Ptr{Cvoid},), loop)
+        err = ccall((:uv_timer_start, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, UInt64, UInt64),
             this, @cfunction(uv_timercb, Cvoid, (Ptr{Cvoid},)),
             timeoutms, intervalms)
         @assert err == 0
@@ -218,7 +219,7 @@ function uv_timercb(handle::Ptr{Cvoid})
     lock(t.cond)
     try
         @atomic :monotonic t.set = true
-        if ccall(:uv_timer_get_repeat, UInt64, (Ptr{Cvoid},), t) == 0
+        if ccall((:uv_timer_get_repeat, libuv), UInt64, (Ptr{Cvoid},), t) == 0
             # timer is stopped now
             close(t)
         end

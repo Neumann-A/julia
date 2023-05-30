@@ -19,20 +19,15 @@ import
         isone, big, _string_n, decompose, minmax,
         sinpi, cospi, sincospi, tanpi, sind, cosd, tand, asind, acosd, atand
 
+
+using .Base.Libc
 import ..Rounding: rounding_raw, setrounding_raw
 
-import ..GMP: ClongMax, CulongMax, CdoubleMax, Limb, libgmp
+import ..GMP: ClongMax, CulongMax, CdoubleMax, Limb
 
 import ..FastMath.sincos_fast
 
-if Sys.iswindows()
-    const libmpfr = "libmpfr-6.dll"
-elseif Sys.isapple()
-    const libmpfr = "@rpath/libmpfr.6.dylib"
-else
-    const libmpfr = "libmpfr.so.6"
-end
-
+using Base.ExternalLibraryNames
 
 version() = VersionNumber(unsafe_string(ccall((:mpfr_get_version,libmpfr), Ptr{Cchar}, ())))
 patches() = split(unsafe_string(ccall((:mpfr_get_patches,libmpfr), Ptr{Cchar}, ())),' ')
@@ -819,14 +814,14 @@ for f in (:sin, :cos, :tan)
         function ($(Symbol(f,:d)))(x::BigFloat)
             isnan(x) && return x
             z = BigFloat()
-            ccall(($(string(:mpfr_,f,:u)), :libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, x, 360, ROUNDING_MODE[])
+            ccall(($(string(:mpfr_,f,:u)), libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, x, 360, ROUNDING_MODE[])
             isnan(z) && throw(DomainError(x, "NaN result for non-NaN input."))
             return z
         end
         function ($(Symbol(:a,f,:d)))(x::BigFloat)
             isnan(x) && return x
             z = BigFloat()
-            ccall(($(string(:mpfr_a,f,:u)), :libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, x, 360, ROUNDING_MODE[])
+            ccall(($(string(:mpfr_a,f,:u)), libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, x, 360, ROUNDING_MODE[])
             isnan(z) && throw(DomainError(x, "NaN result for non-NaN input."))
             return z
         end
@@ -834,7 +829,7 @@ for f in (:sin, :cos, :tan)
 end
 function atand(y::BigFloat, x::BigFloat)
     z = BigFloat()
-    ccall((:mpfr_atan2u, :libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, y, x, 360, ROUNDING_MODE[])
+    ccall((:mpfr_atan2u, libmpfr), Int32, (Ref{BigFloat}, Ref{BigFloat}, Ref{BigFloat}, Culong, MPFRRoundingMode), z, y, x, 360, ROUNDING_MODE[])
     return z
 end
 
@@ -1140,7 +1135,7 @@ function decompose(x::BigFloat)::Tuple{BigInt, Int, Int}
     s.size = cld(x.prec, 8*sizeof(Limb)) # limbs
     b = s.size * sizeof(Limb)            # bytes
     ccall((:__gmpz_realloc2, libgmp), Cvoid, (Ref{BigInt}, Culong), s, 8b) # bits
-    ccall(:memcpy, Ptr{Cvoid}, (Ptr{Cvoid}, Ptr{Cvoid}, Csize_t), s.d, x.d, b) # bytes
+    memcpy(s.d, x.d, b)
     s, x.exp - 8b, x.sign
 end
 

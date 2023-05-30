@@ -222,7 +222,7 @@ Given a library `handle` from `dlopen`, return the full path.
 function dlpath(handle::Ptr{Cvoid})
     p = ccall(:jl_pathname_for_handle, Cstring, (Ptr{Cvoid},), handle)
     s = unsafe_string(p)
-    Sys.iswindows() && Libc.free(p)
+
     return s
 end
 

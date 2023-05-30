@@ -16,6 +16,8 @@ using Base.Filesystem:
 using ..FileWatching: watch_file
 using Base.Sys: iswindows
 
+using Base.ExternalLibraryNames
+
 """
     mkpidlock([f::Function], at::String, [pid::Cint, proc::Process]; kwopts...)
 
@@ -158,7 +160,7 @@ function isvalidpid(hostname::AbstractString, pid::Cuint)
     pid == 0 && return false
     # see if the process id exists by querying kill without sending a signal
     # and checking if it returned ESRCH (no such process)
-    return ccall(:uv_kill, Cint, (Cuint, Cint), pid, 0) != UV_ESRCH
+    return ccall((:uv_kill, libuv), Cint, (Cuint, Cint), pid, 0) != UV_ESRCH
 end
 
 """

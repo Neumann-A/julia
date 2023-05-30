@@ -41,7 +41,7 @@ static void walk_print_cb(uv_handle_t *h, void *arg)
         type = "<unknown>";
     uv_os_fd_t fd;
     if (h->type == UV_PROCESS)
-        fd = uv_process_get_pid((uv_process_t*)h);
+        fd = (void *)uv_process_get_pid((uv_process_t*)h);
     else if (uv_fileno(h, &fd))
         fd = (uv_os_fd_t)-1;
     const char *pad = "                "; // 16 spaces

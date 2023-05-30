@@ -286,6 +286,7 @@ end
     end
 end
 
+using Base.ExternalLibraryNames
 @testset "redirect_stdio" begin
 
     function hello_err_out()
@@ -386,7 +387,7 @@ let fname = tempname(), p
     oldhandle = OLD_STDERR.handle
     OLD_STDERR.status = Base.StatusClosing
     OLD_STDERR.handle = C_NULL
-    ccall(:uv_close, Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), oldhandle, @cfunction(thrash, Cvoid, (Ptr{Cvoid},)))
+    ccall((:uv_close, libuv), Cvoid, (Ptr{Cvoid}, Ptr{Cvoid}), oldhandle, @cfunction(thrash, Cvoid, (Ptr{Cvoid},)))
     sleep(1)
     import Base.zzzInvalidIdentifier
     """

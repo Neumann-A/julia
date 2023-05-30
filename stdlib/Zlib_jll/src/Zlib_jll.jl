@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libz
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -17,13 +15,7 @@ artifact_dir::String = ""
 libz_handle::Ptr{Cvoid} = C_NULL
 libz_path::String = ""
 
-if Sys.iswindows()
-    const libz = "libz.dll"
-elseif Sys.isapple()
-    const libz = "@rpath/libz.1.dylib"
-else
-    const libz = "libz.so.1"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libz_handle = dlopen(libz)

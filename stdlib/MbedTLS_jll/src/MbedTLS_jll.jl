@@ -9,8 +9,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libmbedcrypto, libmbedtls, libmbedx509
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -22,19 +20,7 @@ libmbedtls_path::String = ""
 libmbedx509_handle::Ptr{Cvoid} = C_NULL
 libmbedx509_path::String = ""
 
-if Sys.iswindows()
-    const libmbedcrypto = "libmbedcrypto.dll"
-    const libmbedtls = "libmbedtls.dll"
-    const libmbedx509 = "libmbedx509.dll"
-elseif Sys.isapple()
-    const libmbedcrypto = "@rpath/libmbedcrypto.7.dylib"
-    const libmbedtls = "@rpath/libmbedtls.14.dylib"
-    const libmbedx509 = "@rpath/libmbedx509.1.dylib"
-else
-    const libmbedcrypto = "libmbedcrypto.so.7"
-    const libmbedtls = "libmbedtls.so.14"
-    const libmbedx509 = "libmbedx509.so.1"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libmbedcrypto_handle = dlopen(libmbedcrypto)

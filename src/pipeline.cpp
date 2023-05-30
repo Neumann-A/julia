@@ -1,6 +1,6 @@
 // This file is a part of Julia. License is MIT: https://julialang.org/license
 
-#include <llvm-version.h>
+#include "llvm-version.h"
 #include "platform.h"
 
 //We don't care about uninitialized variables in LLVM; that's LLVM's problem

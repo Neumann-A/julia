@@ -21,14 +21,7 @@ else
 end
 const CdoubleMax = Union{Float16, Float32, Float64}
 
-if Sys.iswindows()
-    const libgmp = "libgmp-10.dll"
-elseif Sys.isapple()
-    const libgmp = "@rpath/libgmp.10.dylib"
-else
-    const libgmp = "libgmp.so.10"
-end
-
+using Base.ExternalLibraryNames
 version() = VersionNumber(unsafe_string(unsafe_load(cglobal((:__gmp_version, libgmp), Ptr{Cchar}))))
 bits_per_limb() = Int(unsafe_load(cglobal((:__gmp_bits_per_limb, libgmp), Cint)))
 
@@ -608,7 +601,7 @@ count_ones_abs(x::BigInt) = iszero(x) ? 0 : MPZ.mpn_popcount(x)
 function top_set_bit(x::BigInt)
     x < 0 && throw(DomainError(x, "top_set_bit only supports negative arguments when they have type BitSigned."))
     x == 0 && return 0
-    Int(ccall((:__gmpz_sizeinbase, :libgmp), Csize_t, (Base.GMP.MPZ.mpz_t, Cint), x, 2))
+    Int(ccall((:__gmpz_sizeinbase, libgmp), Csize_t, (Base.GMP.MPZ.mpz_t, Cint), x, 2))
 end
 
 divrem(x::BigInt, y::BigInt) = MPZ.tdiv_qr(x, y)

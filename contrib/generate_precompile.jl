@@ -17,10 +17,10 @@ using Base.Meta
 
 ## Debugging options
 # Disable parallel precompiles generation by setting `false`
-const PARALLEL_PRECOMPILATION = true
+const PARALLEL_PRECOMPILATION = false
 
 # View the code sent to the repl by setting this to `stdout`
-const debug_output = devnull # or stdout
+const debug_output = stdout # or stdout
 
 # Disable fancy printing
 const fancyprint = (stdout isa Base.TTY) && Base.get_bool_env("CI", false) !== true

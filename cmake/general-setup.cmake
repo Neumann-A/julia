@@ -1,17 +1,22 @@
 
 # Put everything into a common prefix
-# TODO: Use GNUInstalledDirs?
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
+include(GNUInstallDirs)
+set(JULIA_PREFIX_DIR "${CMAKE_CURRENT_BINARY_DIR}/usr" CACHE PATH "Build prefix dir")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_BINDIR}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_LIBDIR}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_LIBDIR}")
+
+set(JULIA_DEPOT_PATH "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/julia")
 
 set(CMAKE_DEBUG_SUFFIX "-debug")
 #TODO: Disable library prefixes sometimes
 
 if(WIN32)
     # add_compile_definitions("_OS_WINDOWS_") # Should probably be moved into a os configuration header instead. Windows typically defines _WIN32 (Note there is src/supports/platform.h)
-    add_compile_definitions("UNICODE" "_UNICODE")
+    #add_compile_definitions("UNICODE" "_UNICODE")
     add_link_options(-STACK:8388608) # This setting should only be applied to the part which actually needs it?
 endif()
 

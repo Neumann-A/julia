@@ -1,15 +1,19 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 module Libc
+using Base.ExternalLibraryNames
 @doc """
 Interface to libc, the C standard library.
 """ Libc
 
 import Base: transcode, windowserror, show
+# these need to be defined seperately for bootstrapping but belong to Libc
+import Base: memcpy, memmove, memset, memcmp
 import Core.Intrinsics: bitcast
 
-export FILE, TmStruct, strftime, strptime, getpid, gethostname, free, malloc, calloc, realloc,
-    errno, strerror, flush_cstdio, systemsleep, time, transcode
+export FILE, TmStruct, strftime, strptime, getpid, gethostname, free, malloc, memcpy,
+    memmove, memset, calloc, realloc, errno, strerror, flush_cstdio, systemsleep, time,
+    transcode
 if Sys.iswindows()
     export GetLastError, FormatMessage
 end
@@ -255,7 +259,8 @@ time() = ccall(:jl_clock_now, Float64, ())
 
 Get Julia's process ID.
 """
-getpid() = ccall(:uv_os_getpid, Int32, ())
+
+getpid() = ccall((:uv_os_getpid, libuv), Int32, ())
 
 ## network functions ##
 
@@ -336,7 +341,6 @@ if Sys.iswindows()
 end
 
 ## Memory related ##
-
 """
     free(addr::Ptr)
 
@@ -346,6 +350,8 @@ be freed by the free functions defined in that library, to avoid assertion failu
 multiple `libc` libraries exist on the system.
 """
 free(p::Ptr) = ccall(:free, Cvoid, (Ptr{Cvoid},), p)
+free(p::Cstring) = free(convert(Ptr{UInt8}, p))
+free(p::Cwstring) = free(convert(Ptr{Cwchar_t}, p))
 
 """
     malloc(size::Integer) -> Ptr{Cvoid}
@@ -371,14 +377,13 @@ Call `calloc` from the C standard library.
 """
 calloc(num::Integer, size::Integer) = ccall(:calloc, Ptr{Cvoid}, (Csize_t, Csize_t), num, size)
 
-free(p::Cstring) = free(convert(Ptr{UInt8}, p))
-free(p::Cwstring) = free(convert(Ptr{Cwchar_t}, p))
+
 
 ## Random numbers ##
 
 # Access to very high quality (kernel) randomness
 function getrandom!(A::Union{Array,Base.RefValue})
-    ret = ccall(:uv_random, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Csize_t,   Cuint, Ptr{Cvoid}),
+    ret = ccall((:uv_random, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Csize_t,   Cuint, Ptr{Cvoid}),
                                    C_NULL,     C_NULL,     A,          sizeof(A), 0,     C_NULL)
     Base.uv_error("getrandom", ret)
     return A
@@ -437,7 +442,7 @@ end
 
 function getpwuid(uid::Unsigned, throw_error::Bool=true)
     ref_pd = Ref(Cpasswd())
-    ret = ccall(:uv_os_get_passwd2, Cint, (Ref{Cpasswd}, Culong), ref_pd, uid)
+    ret = ccall((:uv_os_get_passwd2, libuv), Cint, (Ref{Cpasswd}, Culong), ref_pd, uid)
     if ret != 0
         throw_error && Base.uv_error("getpwuid", ret)
         return
@@ -451,12 +456,12 @@ function getpwuid(uid::Unsigned, throw_error::Bool=true)
         pd.homedir == C_NULL ? "" : unsafe_string(pd.homedir),
         pd.gecos == C_NULL ? "" : unsafe_string(pd.gecos),
     )
-    ccall(:uv_os_free_passwd, Cvoid, (Ref{Cpasswd},), ref_pd)
+    ccall((:uv_os_free_passwd, libuv), Cvoid, (Ref{Cpasswd},), ref_pd)
     return pd
 end
 function getgrgid(gid::Unsigned, throw_error::Bool=true)
     ref_gp = Ref(Cgroup())
-    ret = ccall(:uv_os_get_group, Cint, (Ref{Cgroup}, Culong), ref_gp, gid)
+    ret = ccall((:uv_os_get_group, libuv), Cint, (Ref{Cgroup}, Culong), ref_gp, gid)
     if ret != 0
         throw_error && Base.uv_error("getgrgid", ret)
         return
@@ -475,7 +480,7 @@ function getgrgid(gid::Unsigned, throw_error::Bool=true)
          gp.gid,
          members,
     )
-    ccall(:uv_os_free_group, Cvoid, (Ref{Cgroup},), ref_gp)
+    ccall((:uv_os_free_group, libuv), Cvoid, (Ref{Cgroup},), ref_gp)
     return gp
 end
 

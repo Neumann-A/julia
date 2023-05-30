@@ -82,7 +82,8 @@ export
     trsm!,
     trsm
 
-using ..LinearAlgebra: libblastrampoline, BlasReal, BlasComplex, BlasFloat, BlasInt, DimensionMismatch, checksquare, stride1, chkstride1
+using Base.ExternalLibraryNames
+using ..LinearAlgebra: BlasReal, BlasComplex, BlasFloat, BlasInt, DimensionMismatch, checksquare, stride1, chkstride1
 
 include("lbt.jl")
 

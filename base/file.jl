@@ -29,6 +29,7 @@ export
     unlink,
     walkdir
 
+using Base.ExternalLibraryNames
 # get and set current directory
 
 """
@@ -53,7 +54,7 @@ function pwd()
     buf = Base.StringVector(AVG_PATH - 1) # space for null-terminator implied by StringVector
     sz = RefValue{Csize_t}(length(buf) + 1) # total buffer size including null
     while true
-        rc = ccall(:uv_cwd, Cint, (Ptr{UInt8}, Ptr{Csize_t}), buf, sz)
+        rc = ccall((:uv_cwd, libuv), Cint, (Ptr{UInt8}, Ptr{Csize_t}), buf, sz)
         if rc == 0
             resize!(buf, sz[])
             return String(buf)
@@ -87,7 +88,7 @@ julia> pwd()
 ```
 """
 function cd(dir::AbstractString)
-    err = ccall(:uv_chdir, Cint, (Cstring,), dir)
+    err = ccall((:uv_chdir, libuv), Cint, (Cstring,), dir)
     err < 0 && uv_error("cd($(repr(dir)))", err)
     return nothing
 end
@@ -177,7 +178,7 @@ julia> pwd()
 function mkdir(path::AbstractString; mode::Integer = 0o777)
     req = Libc.malloc(_sizeof_uv_fs)
     try
-        ret = ccall(:uv_fs_mkdir, Cint,
+        ret = ccall((:uv_fs_mkdir, libuv), Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}),
                     C_NULL, req, path, checkmode(mode), C_NULL)
         if ret < 0
@@ -301,7 +302,7 @@ function rm(path::AbstractString; force::Bool=false, recursive::Bool=false)
         end
         req = Libc.malloc(_sizeof_uv_fs)
         try
-            ret = ccall(:uv_fs_rmdir, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}), C_NULL, req, path, C_NULL)
+            ret = ccall((:uv_fs_rmdir, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}), C_NULL, req, path, C_NULL)
             uv_fs_req_cleanup(req)
             ret < 0 && uv_error("rm($(repr(path)))", ret)
             nothing
@@ -475,7 +476,7 @@ function tempdir()
     buf = Base.StringVector(AVG_PATH - 1) # space for null-terminator implied by StringVector
     sz = RefValue{Csize_t}(length(buf) + 1) # total buffer size including null
     while true
-        rc = ccall(:uv_os_tmpdir, Cint, (Ptr{UInt8}, Ptr{Csize_t}), buf, sz)
+        rc = ccall((:uv_os_tmpdir, libuv), Cint, (Ptr{UInt8}, Ptr{Csize_t}), buf, sz)
         if rc == 0
             resize!(buf, sz[])
             return String(buf)
@@ -705,7 +706,7 @@ function mktempdir(parent::AbstractString=tempdir();
 
     req = Libc.malloc(_sizeof_uv_fs)
     try
-        ret = ccall(:uv_fs_mkdtemp, Cint,
+        ret = ccall((:uv_fs_mkdtemp, libuv), Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}),
                     C_NULL, req, tpath, C_NULL)
         if ret < 0
@@ -862,14 +863,14 @@ function readdir(dir::AbstractString; join::Bool=false, sort::Bool=true)
     req = Libc.malloc(_sizeof_uv_fs)
     try
         # defined in sys.c, to call uv_fs_readdir, which sets errno on error.
-        err = ccall(:uv_fs_scandir, Int32, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}),
+        err = ccall((:uv_fs_scandir, libuv), Int32, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}),
                     C_NULL, req, dir, 0, C_NULL)
         err < 0 && uv_error("readdir($(repr(dir)))", err)
 
         # iterate the listing into entries
         entries = String[]
         ent = Ref{uv_dirent_t}()
-        while Base.UV_EOF != ccall(:uv_fs_scandir_next, Cint, (Ptr{Cvoid}, Ptr{uv_dirent_t}), req, ent)
+        while Base.UV_EOF != ccall((:uv_fs_scandir_next, libuv), Cint, (Ptr{Cvoid}, Ptr{uv_dirent_t}), req, ent)
             name = unsafe_string(ent[].name)
             push!(entries, join ? joinpath(dir, name) : name)
         end
@@ -1120,7 +1121,7 @@ Return the target location a symbolic link `path` points to.
 function readlink(path::AbstractString)
     req = Libc.malloc(_sizeof_uv_fs)
     try
-        ret = ccall(:uv_fs_readlink, Int32,
+        ret = ccall((:uv_fs_readlink, libuv), Int32,
             (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}),
             C_NULL, req, path, C_NULL)
         if ret < 0
@@ -1221,7 +1222,7 @@ working directory are returned.
 """
 function diskstat(path::AbstractString=pwd())
     req = zeros(UInt8, _sizeof_uv_fs)
-    err = ccall(:uv_fs_statfs, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}),
+    err = ccall((:uv_fs_statfs, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cstring, Ptr{Cvoid}),
                 C_NULL, req, path, C_NULL)
     err < 0 && uv_error("diskstat($(repr(path)))", err)
     statfs_ptr = ccall(:jl_uv_fs_t_ptr, Ptr{Nothing}, (Ptr{Cvoid},), req)

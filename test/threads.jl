@@ -176,6 +176,7 @@ function idle_callback(handle)
     nothing
 end
 
+using Base.ExternalLibraryNames
 mutable struct UvTestIdle
     handle::Ptr{Cvoid}
     cond::Base.ThreadSynchronizer
@@ -187,14 +188,14 @@ mutable struct UvTestIdle
         this = new(Libc.malloc(Base._sizeof_uv_idle), Base.ThreadSynchronizer(), true, false, 0)
         Base.iolock_begin()
         Base.associate_julia_struct(this.handle, this)
-        err = ccall(:uv_idle_init, Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
+        err = ccall((:uv_idle_init, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
             Base.eventloop(), this.handle)
         if err != 0
             Libc.free(this.handle)
             this.handle = C_NULL
             throw(_UVError("uv_idle_init", err))
         end
-        err = ccall(:uv_idle_start, Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
+        err = ccall((:uv_idle_start, libuv), Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
             this.handle, @cfunction(idle_callback, Cvoid, (Ptr{Cvoid},)))
         if err != 0
             Libc.free(this.handle)
@@ -255,7 +256,7 @@ cmd = """
     sleep(100)
     isopen(stdin) || exit()
     println(stderr, "ERROR: Killing threads test due to watchdog expiry")
-    ccall(:uv_kill, Cint, (Cint, Cint), $(getpid()), Base.SIGTERM)
+    ccall((:uv_kill, libuv), Cint, (Cint, Cint), $(getpid()), Base.SIGTERM)
 """
 proc = open(pipeline(`$(Base.julia_cmd()) -e $cmd`; stderr=stderr); write=true)
 

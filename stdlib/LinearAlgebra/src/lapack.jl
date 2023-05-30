@@ -5,9 +5,11 @@ module LAPACK
 Interfaces to LAPACK subroutines.
 """ LAPACK
 
+using Base.ExternalLibraryNames
+
 using ..LinearAlgebra.BLAS: @blasfunc, chkuplo
 
-using ..LinearAlgebra: libblastrampoline, BlasFloat, BlasInt, LAPACKException, DimensionMismatch,
+using ..LinearAlgebra: BlasFloat, BlasInt, LAPACKException, DimensionMismatch,
     SingularException, PosDefException, chkstride1, checksquare,triu, tril, dot
 
 using Base: iszero, require_one_based_indexing

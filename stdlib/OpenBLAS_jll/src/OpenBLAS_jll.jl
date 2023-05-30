@@ -18,8 +18,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libopenblas
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -33,16 +31,7 @@ else
     const libsuffix = ""
 end
 
-if Sys.iswindows()
-    const libopenblas = "libopenblas$(libsuffix).dll"
-    const _libgfortran = string("libgfortran-", libgfortran_version(HostPlatform()).major, ".dll")
-elseif Sys.isapple()
-    const libopenblas = "@rpath/libopenblas$(libsuffix).dylib"
-    const _libgfortran = string("@rpath/", "libgfortran.", libgfortran_version(HostPlatform()).major, ".dylib")
-else
-    const libopenblas = "libopenblas$(libsuffix).so"
-    const _libgfortran = string("libgfortran.so.", libgfortran_version(HostPlatform()).major)
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     # make sure OpenBLAS does not set CPU affinity (#1070, #9639)
@@ -65,7 +54,7 @@ function __init__()
 
     # As mentioned above, we are sneaking this in here so that we don't have to
     # depend on CSL_jll and load _all_ of its libraries.
-    dlopen(_libgfortran)
+    # dlopen(_libgfortran)
 
     global libopenblas_handle = dlopen(libopenblas)
     global libopenblas_path = dlpath(libopenblas_handle)

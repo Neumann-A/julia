@@ -4,12 +4,11 @@
 
 baremodule dSFMT_jll
 using Base, Libdl
+using Base.ExternalLibraryNames
 Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 
 const PATH_list = String[]
 const LIBPATH_list = String[]
-
-export libdSFMT
 
 # These get calculated in __init__()
 const PATH = Ref("")
@@ -18,16 +17,8 @@ artifact_dir::String = ""
 libdSFMT_handle::Ptr{Cvoid} = C_NULL
 libdSFMT_path::String = ""
 
-if Sys.iswindows()
-    const libdSFMT = "libdSFMT.dll"
-elseif Sys.isapple()
-    const libdSFMT = "@rpath/libdSFMT.dylib"
-else
-    const libdSFMT = "libdSFMT.so"
-end
-
 function __init__()
-    global libdSFMT_handle = dlopen(libdSFMT)
+    global libdSFMT_handle = dlopen(:libdSFMT)
     global libdSFMT_path = dlpath(libdSFMT_handle)
     global artifact_dir = dirname(Sys.BINDIR)
     LIBPATH[] = dirname(libdSFMT_path)

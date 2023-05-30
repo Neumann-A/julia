@@ -11,6 +11,7 @@ export
     Iterators,
     Broadcast,
     MathConstants,
+    ExternalLibraryNames,
 
 # Types
     AbstractChannel,

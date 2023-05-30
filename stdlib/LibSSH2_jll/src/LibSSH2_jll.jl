@@ -9,8 +9,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libssh2
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -18,13 +16,7 @@ artifact_dir::String = ""
 libssh2_handle::Ptr{Cvoid} = C_NULL
 libssh2_path::String = ""
 
-if Sys.iswindows()
-    const libssh2 = "libssh2.dll"
-elseif Sys.isapple()
-    const libssh2 = "@rpath/libssh2.1.dylib"
-else
-    const libssh2 = "libssh2.so.1"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
     global libssh2_handle = dlopen(libssh2)

@@ -83,12 +83,13 @@
 #endif
 
 // We need to dlopen() ourselves in order to introspect the libdir.
+#if !defined(LIBJULIA_NAME)
 #if defined(JL_DEBUG_BUILD)
 #define LIBJULIA_NAME "libjulia-debug"
 #else
 #define LIBJULIA_NAME "libjulia"
 #endif
-
+#endif
 
 // Declarations from `loader_lib.c` and `loader_win_utils.c`
 JL_DLLEXPORT extern int jl_load_repl(int, char **);

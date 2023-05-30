@@ -1063,14 +1063,16 @@ threadcall_test_func(x) =
 # NOTE: can't use cfunction or reuse ccalltest Struct methods, as those call into the runtime
 @test @threadcall((:threadcall_args, libccalltest), Cint, (Cint, Cint), 1, 2) == 3
 
+using Base.ExternalLibraryNames
+
 let n=3
     tids = Culong[]
     @sync for i in 1:10^n
-        @async push!(tids, @threadcall(:uv_thread_self, Culong, ()))
+        @async push!(tids, @threadcall((:uv_thread_self, libuv), Culong, ()))
     end
 
     # The work should not be done on the master thread
-    t0 = ccall(:uv_thread_self, Culong, ())
+    t0 = ccall((:uv_thread_self, libuv), Culong, ())
     @test length(tids) == 10^n
     for t in tids
         @test t != t0

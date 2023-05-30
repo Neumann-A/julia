@@ -1,10 +1,10 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 const uv_thread_t = UInt # TODO: this is usually correct (or tolerated by the API), but not guaranteed
-
+using Base.ExternalLibraryNames
 function uv_thread_getaffinity()
-    masksize = ccall(:uv_cpumask_size, Cint, ())
-    self = ccall(:uv_thread_self, uv_thread_t, ())
+    masksize = ccall((:uv_cpumask_size, libuv), Cint, ())
+    self = ccall((:uv_thread_self, libuv), uv_thread_t, ())
     ref = Ref(self)
     cpumask = zeros(Bool, masksize)
     err = ccall(

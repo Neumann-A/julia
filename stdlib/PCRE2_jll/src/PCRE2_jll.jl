@@ -8,8 +8,6 @@ Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 const PATH_list = String[]
 const LIBPATH_list = String[]
 
-export libpcre2_8
-
 # These get calculated in __init__()
 const PATH = Ref("")
 const LIBPATH = Ref("")
@@ -17,16 +15,10 @@ artifact_dir::String = ""
 libpcre2_8_handle::Ptr{Cvoid} = C_NULL
 libpcre2_8_path::String = ""
 
-if Sys.iswindows()
-    const libpcre2_8 = "libpcre2-8-0.dll"
-elseif Sys.isapple()
-    const libpcre2_8 = "@rpath/libpcre2-8.0.dylib"
-else
-    const libpcre2_8 = "libpcre2-8.so.0"
-end
+using Base.ExternalLibraryNames
 
 function __init__()
-    global libpcre2_8_handle = dlopen(libpcre2_8)
+    global libpcre2_8_handle = dlopen(libpcre2)
     global libpcre2_8_path = dlpath(libpcre2_8_handle)
     global artifact_dir = dirname(Sys.BINDIR)
     LIBPATH[] = dirname(libpcre2_8_path)
