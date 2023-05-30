@@ -17,10 +17,10 @@ using Base.Meta
 
 ## Debugging options
 # Disable parallel precompiles generation by setting `false`
-const PARALLEL_PRECOMPILATION = false
+const PARALLEL_PRECOMPILATION = true
 
 # View the code sent to the repl by setting this to `stdout`
-const debug_output = stdout # or stdout
+const debug_output = stderr # or stdout
 
 # Disable fancy printing
 const fancyprint = (stdout isa Base.TTY) && Base.get_bool_env("CI", false) !== true
@@ -148,7 +148,7 @@ if Artifacts !== nothing
     artifacts = Artifacts.load_artifacts_toml(artifacts_toml)
     platforms = [Artifacts.unpack_platform(e, "HelloWorldC", artifacts_toml) for e in artifacts["HelloWorldC"]]
     best_platform = select_platform(Dict(p => triplet(p) for p in platforms))
-    dlopen("libjulia$(Base.isdebugbuild() ? "-debug" : "")", RTLD_LAZY | RTLD_DEEPBIND)
+    dlopen("julia$(Base.isdebugbuild() ? "-debug" : "")", RTLD_LAZY | RTLD_DEEPBIND)
     """
 end
 

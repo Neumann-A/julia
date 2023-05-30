@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 function GitReference(repo::GitRepo, refname::AbstractString)
     ensure_initialized()
     ref_ptr_ptr = Ref{Ptr{Cvoid}}(C_NULL)

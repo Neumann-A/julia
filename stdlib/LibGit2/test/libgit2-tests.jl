@@ -3,6 +3,7 @@
 module LibGit2Tests
 
 import LibGit2
+using Base.ExternalLibraryNames
 using Test
 using Random, Serialization, Sockets
 

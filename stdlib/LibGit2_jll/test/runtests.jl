@@ -1,6 +1,7 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
 
 using Test, Libdl, LibGit2_jll
+using Base.ExternalLibraryNames
 
 @testset "LibGit2_jll" begin
     major = Ref{Cint}(0)

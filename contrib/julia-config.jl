@@ -21,13 +21,13 @@ function libDir()
         if Base.DARWIN_FRAMEWORK
             joinpath(dirname(abspath(Libdl.dlpath(Base.DARWIN_FRAMEWORK_NAME * "_debug"))),"lib")
         else
-            dirname(abspath(Libdl.dlpath("libjulia-debug")))
+            dirname(abspath(Libdl.dlpath("julia-debug")))
         end
     else
         if Base.DARWIN_FRAMEWORK
             joinpath(dirname(abspath(Libdl.dlpath(Base.DARWIN_FRAMEWORK_NAME))),"lib")
         else
-            dirname(abspath(Libdl.dlpath("libjulia")))
+            dirname(abspath(Libdl.dlpath("julia")))
         end
     end
 end

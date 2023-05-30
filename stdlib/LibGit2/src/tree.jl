@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 function GitTree(c::GitCommit)
     tree_out = Ref{Ptr{Cvoid}}(C_NULL)
     @check ccall((:git_commit_tree, libgit2), Cint, (Ptr{Ptr{Cvoid}}, Ptr{Cvoid}), tree_out, c)

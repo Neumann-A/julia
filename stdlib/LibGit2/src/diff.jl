@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 # TODO: make this a general purpose solution
 function Base.cconvert(::Type{Ptr{DiffOptionsStruct}}, pathspecs::AbstractString)
     str_ref = Base.cconvert(Ref{Cstring}, [pathspecs])
