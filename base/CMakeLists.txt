@@ -144,10 +144,11 @@ add_custom_target(
         --startup-file=no 
         #--warn-overwrite=yes 
         -g${BOOTSTRAP_DEBUG_LEVEL} 
-        #--trace-compile=stderr 
+        --trace-compile=stderr 
         -O0 
         "${JL_BASE_DIR}/compiler/compiler.jl"
-    COMMAND_EXPAND_LISTS VERBATIM
+    COMMAND echo "Finished corecompiler.ji"
+    COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS uv_constants file_constants pcre_h errno julia-codegen
@@ -162,14 +163,14 @@ add_custom_target(
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/sys.ji"
         ${JULIA_SYSIMG_BUILD_FLAGS}
-        --startup-file=no 
-        --warn-overwrite=yes 
-        -g${BOOTSTRAP_DEBUG_LEVEL} 
+        --startup-file=no
+        #--warn-overwrite=yes
+        -g${BOOTSTRAP_DEBUG_LEVEL}
         --trace-compile=stderr
-        -O0 
+        -O0
         --sysimage "${JULA_PRECOMPILE_DIR}/corecompiler.ji" sysimg.jl "${JL_BASE_DIR}/"
     COMMAND echo "Finished sysimg.jl"
-    COMMAND_EXPAND_LISTS VERBATIM
+    COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys.ji"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS corecompiler_ji
@@ -194,7 +195,7 @@ add_custom_target(
         --sysimage "${JULA_PRECOMPILE_DIR}/sys.ji" 
         "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
     COMMAND echo "Finished generate_precompile.jl"
-    COMMAND_EXPAND_LISTS VERBATIM
+    COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS sys_ji
@@ -208,8 +209,8 @@ string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_AR
 add_library(sys SHARED "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}")
 add_dependencies(sys sysimg_builder)
 target_link_libraries(sys PRIVATE julia julia-internal)
+target_compile_options(sys PRIVATE -fuse-ld=lld-link -v)
 target_link_options(sys PRIVATE 
-                            -fuse-ld=lld
                             /DEFAULTLIB:msvcrt.lib 
                             /DEFAULTLIB:oldnames.lib 
                             /DEFAULTLIB:msvcprt.lib 

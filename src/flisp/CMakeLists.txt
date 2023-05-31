@@ -8,10 +8,12 @@ set(flisp_SRCS
         julia_extensions.c
 )
 
-add_library(flisp STATIC ${flisp_SRCS} $<TARGET_OBJECTS:jl::support>)
+add_library(flisp STATIC ${flisp_SRCS} )#$<TARGET_OBJECTS:jl::support>)
 add_library(jl::flisp ALIAS flisp)
-target_link_libraries(flisp PUBLIC jl::support jl::libuv)
+target_link_libraries(flisp PUBLIC jl::libuv)
+#target_link_libraries(flisp PUBLIC $<TARGET_PROPERTY:support,INCLUDE_DIRECTORIES>)
 target_compile_definitions(flisp PRIVATE "JL_LIBRARY_EXPORTS_INTERNAL")
+target_include_directories(flisp PUBLIC "$<TARGET_PROPERTY:support,INCLUDE_DIRECTORIES>")
 
 if(CMAKE_CROSSCOMPILING)
     find_program(FLISP_EXECUTABLE NAMES flisp PATHS bin REQUIRED)
@@ -19,7 +21,7 @@ else()
     add_executable(flisp_bin flmain.c flisp.h $<TARGET_OBJECTS:jl::support> $<TARGET_OBJECTS:setjmp_impl>)
     add_executable(jl::bin::flisp ALIAS flisp_bin)
     set_target_properties(flisp_bin PROPERTIES OUTPUT_NAME flisp ARCHIVE_OUTPUT_NAME flisp_exe LIBRARY_OUTPUT_NAME flisp_exe)
-    target_link_libraries(flisp_bin PRIVATE jl::flisp)
+    target_link_libraries(flisp_bin PRIVATE jl::flisp jl::support)
     set(FLISP_EXECUTABLE flisp_bin)
 endif()
 

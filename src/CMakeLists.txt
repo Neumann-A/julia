@@ -36,7 +36,7 @@ endforeach()
 
 add_library(julia-internal SHARED ${jl_internal_srcs} ${jl_internal_proc_srcs} ${jl_internal_signals_srcs} $<TARGET_OBJECTS:support> $<TARGET_OBJECTS:setjmp_impl>)
 add_library(jl::julia-internal ALIAS julia-internal)
-target_link_libraries(julia-internal PRIVATE jl::julia jl::flisp jl::libuv jl::valgrind jl::getopt jl::llvm)
+target_link_libraries(julia-internal PRIVATE jl::julia jl::flisp jl::libuv jl::valgrind jl::getopt jl::llvm jl::support)
 if(WIN32)
     target_link_libraries(julia-internal PRIVATE Dbghelp.lib Winmm.lib Ws2_32.lib)
 endif()
