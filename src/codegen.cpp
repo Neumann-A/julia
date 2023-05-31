@@ -620,40 +620,40 @@ static AttributeList get_attrs_zext(LLVMContext &C)
 
 // global vars
 static const auto jlRTLD_DEFAULT_var = new JuliaVariable{
-    XSTR(jl_RTLD_DEFAULT_handle),
+    "__imp_" XSTR(jl_RTLD_DEFAULT_handle), // "__imp_"?
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jlexe_var = new JuliaVariable{
-    XSTR(jl_exe_handle),
+    "__imp_" XSTR(jl_exe_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jldll_var = new JuliaVariable{
-    XSTR(jl_libjulia_handle),
+    "__imp_" XSTR(jl_libjulia_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jldlli_var = new JuliaVariable{
-    XSTR(jl_libjulia_internal_handle),
+    "__imp_" XSTR(jl_libjulia_internal_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jlsmall_typeof_var = new JuliaVariable{
-    XSTR(small_typeof),
+    "__imp_" XSTR(small_typeof),
     true,
     [](Type *T_size) -> Type * { return getInt8Ty(T_size->getContext()); },
 };
 
 __declspec(dllimport) extern "C" uintptr_t __stack_chk_guard;
 static const auto jlstack_chk_guard_var = new JuliaVariable{
-    XSTR(__stack_chk_guard),
+    "__imp_" XSTR(__stack_chk_guard),
     true,
     [](Type *T_size) -> Type * { return get_pjlvalue(T_size->getContext()); },
 };
 
 static const auto jlgetworld_global = new JuliaVariable{
-    XSTR(jl_world_counter),
+    "__imp_" XSTR(jl_world_counter),
     false,
     [](Type *T_size) -> Type * { return T_size; },
 };
@@ -1767,7 +1767,7 @@ static inline GlobalVariable *prepare_global_in(Module *M, GlobalVariable *G)
         proto->copyAttributesFrom(G);
         // DLLImport only needs to be set for the shadow module
         // it just gets annoying in the JIT
-        proto->setDLLStorageClass(GlobalValue::DefaultStorageClass);
+        proto->setDLLStorageClass(GlobalValue::DefaultStorageClass);// GlobalValue::DefaultStorageClass);
         return proto;
     }
     return cast<GlobalVariable>(local);
