@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 """
     GitAnnotated(repo::GitRepo, commit_id::GitHash)
     GitAnnotated(repo::GitRepo, ref::GitReference)

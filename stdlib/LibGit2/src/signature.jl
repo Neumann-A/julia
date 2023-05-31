@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 function Signature(ptr::Ptr{SignatureStruct})
     sig   = unsafe_load(ptr)::SignatureStruct
     name  = unsafe_string(sig.name)

@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 function Base.length(blob::GitBlob)
     ensure_initialized()
     return ccall((:git_blob_rawsize, libgit2), Int64, (Ptr{Cvoid},), blob.ptr)

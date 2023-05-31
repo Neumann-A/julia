@@ -1,5 +1,5 @@
 # This file is a part of Julia. License is MIT: https://julialang.org/license
-
+using Base.ExternalLibraryNames
 # Parse "GIT URLs" syntax (URLs and a scp-like syntax). For details see:
 # https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a
 # Note that using a Regex like this is inherently insecure with regards to its

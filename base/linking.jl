@@ -16,7 +16,7 @@ const dsymutil_exe = Sys.iswindows() ? "dsymutil.exe" : "dsymutil"
 
 if Sys.iswindows()
     const LIBPATH_env = "PATH"
-    const LIBPATH_default = ""
+    const LIBPATH_default = "LIBPATH"
     const pathsep = ';'
 elseif Sys.isapple()
     const LIBPATH_env = "DYLD_FALLBACK_LIBRARY_PATH"
@@ -108,9 +108,9 @@ function ld()
     default_args = ``
     @static if Sys.iswindows()
         # LLD supports mingw style linking
-        flavor = "gnu"
+        flavor = "link"
         m = Sys.ARCH == :x86_64 ? "i386pep" : "i386pe"
-        default_args = `-m $m -Bdynamic --enable-auto-image-base --allow-multiple-definition`
+        default_args = `-force:multiple` #-m $m -Bdynamic --enable-auto-image-base 
     elseif Sys.isapple()
         flavor = "darwin"
         arch = Sys.ARCH == :aarch64 ? :arm64 : Sys.ARCH
@@ -125,19 +125,19 @@ end
 const WHOLE_ARCHIVE = if Sys.isapple()
     "-all_load"
 else
-    "--whole-archive"
+    "-wholearchive:"
 end
 
 const NO_WHOLE_ARCHIVE = if Sys.isapple()
     ""
 else
-    "--no-whole-archive"
+    ""
 end
 
 const SHARED = if Sys.isapple()
     "-dylib"
 else
-    "-shared"
+    "-dll"
 end
 
 is_debug() = ccall(:jl_is_debugbuild, Cint, ()) == 1
@@ -150,16 +150,16 @@ else
 end
 
 function link_image_cmd(path, out)
-    LIBDIR = "-L$(libdir())"
-    PRIVATE_LIBDIR = "-L$(private_libdir())"
-    SHLIBDIR = "-L$(shlibdir())"
-    LIBS = is_debug() ? ("-ljulia-debug", "-ljulia-internal-debug") : ("-ljulia", "-ljulia-internal")
+    LIBDIR = "-LIBPATH:$(libdir())"
+    PRIVATE_LIBDIR = "-LIBPATH:$(private_libdir())"
+    SHLIBDIR = "-LIBPATH:$(shlibdir())"
+    LIBS = is_debug() ? ("julia-debug", "julia-internal-debug") : ("julia.lib", "julia-internal.lib")
     @static if Sys.iswindows()
-        LIBS = (LIBS..., "-lopenlibm", "-lssp", "-lgcc_s", "-lgcc", "-lmsvcrt")
+       # LIBS = (LIBS..., "-lmsvcrt")
     end
 
     V = VERBOSE[] ? "--verbose" : ""
-    `$(ld()) $V $SHARED -o $out $WHOLE_ARCHIVE $path $NO_WHOLE_ARCHIVE $LIBDIR $PRIVATE_LIBDIR $SHLIBDIR $LIBS`
+    `$(ld()) -verbose $SHARED -out:$out $WHOLE_ARCHIVE$path $NO_WHOLE_ARCHIVE $LIBDIR $PRIVATE_LIBDIR $SHLIBDIR $LIBS`
 end
 
 function link_image(path, out, internal_stderr::IO=stderr, internal_stdout::IO=stdout)

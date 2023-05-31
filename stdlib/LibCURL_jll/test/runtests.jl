@@ -2,6 +2,7 @@
 
 using Test
 using LibCURL_jll
+using Base.ExternalLibraryNames
 
 @testset "LibCURL_jll" begin
     v = unsafe_string(ccall((:curl_version, libcurl), Cstring, ()))
