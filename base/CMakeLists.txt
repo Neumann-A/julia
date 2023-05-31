@@ -297,15 +297,16 @@ string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_AR
 
 add_library(sys SHARED "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}")
 add_dependencies(sys sysimg_builder_o)
-target_link_libraries(sys PRIVATE julia julia-internal)
-target_compile_options(sys PRIVATE -fuse-ld=lld-link -v)
-target_link_options(sys PRIVATE 
-                            /DEFAULTLIB:msvcrt.lib 
-                            /DEFAULTLIB:oldnames.lib 
-                            /DEFAULTLIB:msvcprt.lib 
-                            /FAILIFMISMATCH:_ITERATOR_DEBUG_LEVEL=0
-                            /FAILIFMISMATCH:RuntimeLibrary=MD_DynamicRelease
-)
+target_link_libraries(sys PRIVATE julia julia-internal julia-codegen)
+target_compile_options(sys PRIVATE -fuse-ld=lld-link -v -MT)
+target_link_options(sys PRIVATE  
+                                /DEFAULTLIB:libucrt.lib 
+                                /DEFAULTLIB:libvcruntime.lib
+                                /DEFAULTLIB:libcmt.lib
+                                /DEFAULTLIB:oldnames.lib 
+ )
+set_property(TARGET sys PROPERTY
+  MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_target_properties(sys PROPERTIES LINKER_LANGUAGE CXX)
 # add_custom_target(
 #     sys_shared ALL
