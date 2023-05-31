@@ -20,6 +20,73 @@ set(JL_USE_BLAS64 false)
 set(JL_LIBM "")
 set(LLVM_SHARED_LIB_NAME "LLVM-C")
 configure_file("${JL_BASE_DIR}/build_h.jl.in" "${JL_BASE_DIR}/build_h.jl" @ONLY)
+
+set(jl_null_redirect null)
+
+set(JL_COMMIT "")
+set(JL_COMMIT_SHORT "") 
+set(JL_BRANCH "") 
+set(JL_BUILD_NUMBER -1) 
+set(JL_BUILD_DATE "")
+set(JL_TAGGED false) 
+set(JL_FORK_MASTER_DIST -1) 
+set(JL_FORK_MASTER_TIMESTAMP 0.0) 
+set(JL_BUILD_SYSTEM_COMMIT "")
+set(JL_BUILD_SYSTEM_COMMIT_SHORT "")
+if(Git_FOUND)
+    set(GIT_COMMAND_ECHO "STDOUT")
+    macro(jl_run_git_command command outvar)
+        separate_arguments(command_list NATIVE_COMMAND "${command}")
+        execute_process(COMMAND ${GIT_EXECUTABLE} ${command_list}
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+            COMMAND_ERROR_IS_FATAL LAST
+            COMMAND_ECHO ${GIT_COMMAND_ECHO}
+            OUTPUT_VARIABLE ${outvar} 
+            ${ARGN})
+    endmacro()
+    jl_run_git_command("config -l" "origin")
+    string(REPLACE "\n" ";" origin "${origin}")
+    list(FILTER origin INCLUDE REGEX "remote\\\.(url\\\.|[^.]+\\\.)+.+/julia\\\.git")
+    if(origin)
+        string(REGEX REPLACE "remote\\\.([a-zA-Z]+).+" "\\1/" origin "${origin}")
+    else()
+        set(origin "origin/")
+    endif()
+    jl_run_git_command("rev-parse HEAD" "JL_COMMIT")
+    jl_run_git_command("rev-parse --short HEAD" "JL_COMMIT_SHORT")
+    jl_run_git_command("status --porcelain" "GIT_IS_CLEAN")
+    if(NOT GIT_IS_CLEAN)
+        string(APPEND JL_COMMIT_SHORT "*")
+    endif()
+    if(DEFINED ENV{BUILDKITE_BRANCH})
+        set(JL_BRANCH "$ENV{BUILDKITE_BRANCH}")
+    else()
+        jl_run_git_command("rev-parse --abbrev-ref HEAD" "JL_BRANCH")
+    endif()
+    jl_run_git_command("rev-parse --show-toplevel" "GIT_TOPDIR" OUTPUT_STRIP_TRAILING_WHITESPACE)
+    string(REPLACE "\n" "" GIT_TOPDIR "${GIT_TOPDIR}")
+    jl_run_git_command("blame -L ,1 -sl -- \"${GIT_TOPDIR}/VERSION\"" "GIT_JL_VERSION")
+    if(GIT_JL_VERSION MATCHES "^(0000000000000000000000000000000000000000)")
+        set(JL_BUILD_NUMBER 0)
+    else()
+        string(REGEX REPLACE " .+" "" GIT_JL_VERSION "${GIT_JL_VERSION}")
+        jl_run_git_command("rev-list --count HEAD \"${GIT_JL_VERSION}\"" "GIT_VERSION")
+    endif()
+    jl_run_git_command("log -1 --pretty=format:%ci" "JL_BUILD_DATE")
+    #jl_run_git_command("describe --tags --exact-match" "GIT_JL_TAGGED" ERROR_QUIET COMMAND echo 0)
+    #if(NOT GIT_JL_TAGGED)
+    #    set(JL_TAGGED false)
+    #endif()
+    #TODO
+    #fork_master_distance=$(git rev-list HEAD ^"$(echo $origin)master" | wc -l | sed -e 's/[^[:digit:]]//g')
+    #fork_master_timestamp=$(git show -s $(git merge-base HEAD $(echo $origin)master) --format=format:"%ct")
+    set(buildkite_dir "${CMAKE_CURRENT_SOURCE_DIR}/../.buildkite")
+    if(EXISTS "${buildkite_dir}/.git") 
+        jl_run_git_command("-C \"${buildkite_dir}\" rev-parse HEAD" "JL_BUILD_SYSTEM_COMMIT")
+        jl_run_git_command("-C \"${buildkite_dir}\" rev-parse --short HEAD" "JL_BUILD_SYSTEM_COMMIT_SHORT")
+    endif()
+endif()
+
 configure_file("${JL_BASE_DIR}/version_git.jl.in" "${JL_BASE_DIR}/version_git.jl" @ONLY) # TODO
 
 separate_arguments(cpp_flags NATIVE_COMMAND "${CMAKE_C_FLAGS}")
@@ -133,7 +200,7 @@ set(JULA_PRECOMPILE_DIR "${JULIA_PREFIX_DIR}/${CMAKE_INSTALL_LIBDIR}/julia")
 file(MAKE_DIRECTORY "${JULA_PRECOMPILE_DIR}")
 
 set(JULIA_CPU_TARGET "x86_64")
-set(BOOTSTRAP_DEBUG_LEVEL 2)
+set(BOOTSTRAP_DEBUG_LEVEL 1)
 
 add_custom_target(
     corecompiler_ji ALL
@@ -142,8 +209,8 @@ add_custom_target(
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
         --startup-file=no 
-        #--warn-overwrite=yes 
-        -g${BOOTSTRAP_DEBUG_LEVEL} 
+        --warn-overwrite=yes 
+        -g${BOOTSTRAP_DEBUG_LEVEL}
         --trace-compile=stderr 
         -O0 
         "${JL_BASE_DIR}/compiler/compiler.jl"
@@ -153,35 +220,57 @@ add_custom_target(
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS uv_constants file_constants pcre_h errno julia-codegen
 )
-install(FILES "${JULA_PRECOMPILE_DIR}/corecompiler.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
 
 add_custom_target(
-    sys_ji ALL
+    sys_o0_ji ALL
     COMMAND echo "Running sysimg.ji"
+    COMMAND set JULIA_NUM_THREADS=1
+    COMMAND julia_bin
+        -C "${JULIA_CPU_TARGET}" 
+        --output-ji "${JULA_PRECOMPILE_DIR}/sys-o0.ji"
+        ${JULIA_SYSIMG_BUILD_FLAGS}
+        --startup-file=no
+        --warn-overwrite=yes
+        -g${BOOTSTRAP_DEBUG_LEVEL}
+        --trace-compile=stderr
+        -O0 # is there a reason not to run this with O
+        --sysimage "${JULA_PRECOMPILE_DIR}/corecompiler.ji" sysimg.jl "${JL_BASE_DIR}/"
+    COMMAND echo "Finished sysimg.jl"
+    COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
+    BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys-o0.ji"
+    WORKING_DIRECTORY "${JL_BASE_DIR}"
+    DEPENDS corecompiler_ji
+)
+
+install(FILES "${JULA_PRECOMPILE_DIR}/sys-o0.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
+
+add_custom_target(
+    sysimg_builder_ji ALL
+    COMMAND echo "Running generate_precompile.jl for sys.ji"
     COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/sys.ji"
         ${JULIA_SYSIMG_BUILD_FLAGS}
-        --startup-file=no
-        #--warn-overwrite=yes
-        -g${BOOTSTRAP_DEBUG_LEVEL}
-        --trace-compile=stderr
-        -O0
-        --sysimage "${JULA_PRECOMPILE_DIR}/corecompiler.ji" sysimg.jl "${JL_BASE_DIR}/"
-    COMMAND echo "Finished sysimg.jl"
+        --startup-file=no 
+        --warn-overwrite=yes 
+        -g${BOOTSTRAP_DEBUG_LEVEL} 
+        --trace-compile=stderr 
+        -O3
+        --sysimage "${JULA_PRECOMPILE_DIR}/sys-o0.ji" 
+        "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
+    COMMAND echo "Finished generate_precompile.jl"
     COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys.ji"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
-    DEPENDS corecompiler_ji
+    DEPENDS sys_o0_ji
 )
-
 
 install(FILES "${JULA_PRECOMPILE_DIR}/sys.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
 
 add_custom_target(
-    sysimg_builder ALL
-    COMMAND echo "Running generate_precompile.jl"
+    sysimg_builder_o ALL
+    COMMAND echo "Running generate_precompile.jl for sys.o"
     COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
@@ -192,13 +281,13 @@ add_custom_target(
         -g${BOOTSTRAP_DEBUG_LEVEL} 
         --trace-compile=stderr 
         -O3
-        --sysimage "${JULA_PRECOMPILE_DIR}/sys.ji" 
+        --sysimage "${JULA_PRECOMPILE_DIR}/sys-o0.ji" 
         "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
     COMMAND echo "Finished generate_precompile.jl"
     COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
-    DEPENDS sys_ji
+    DEPENDS sys_o0_ji
 )
 
 separate_arguments(c_linker_flags NATIVE_COMMAND "${CMAKE_SHARED_LINKER_FLAGS}")
@@ -207,7 +296,7 @@ separate_arguments(c_linker_flags_${build_type} NATIVE_COMMAND "${CMAKE_SHARED_L
 string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_ARCHIVE}")
 
 add_library(sys SHARED "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}")
-add_dependencies(sys sysimg_builder)
+add_dependencies(sys sysimg_builder_o)
 target_link_libraries(sys PRIVATE julia julia-internal)
 target_compile_options(sys PRIVATE -fuse-ld=lld-link -v)
 target_link_options(sys PRIVATE 

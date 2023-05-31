@@ -11,6 +11,4 @@ struct GitVersionInfo
     build_system_commit_short::String
 end
 
-# Default output if git is not available. TODO: Use CMake to get and configure git version info
-const GIT_VERSION_INFO = GitVersionInfo("", "", "", 0, "", true, 0, 0.0, "", "")
-# TODO: Actually use configure file to generate the correct info
+const GIT_VERSION_INFO = GitVersionInfo("@JL_COMMIT@", "@JL_COMMIT_SHORT@", "@JL_BRANCH@", @JL_BUILD_NUMBER@, "@JL_BUILD_DATE@", @JL_TAGGED@, @JL_FORK_MASTER_DIST@, @JL_FORK_MASTER_TIMESTAMP@, "@JL_BUILD_SYSTEM_COMMIT@", "@JL_BUILD_SYSTEM_COMMIT_SHORT@")

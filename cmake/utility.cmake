@@ -1,0 +1,27 @@
+function(get_files outvar)
+    cmake_parse_arguments(PARSE_ARGV 1 arg 
+        ""
+        "DIR" 
+        "NAMES;SUFFIXES")
+    if(NOT arg_DIR)
+        set(arg_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
+    if(NOT arg_SUFFIXES)
+        set(arg_SUFFIXES c cpp h hpp)
+    endif()
+    set("${outvar}" "")
+    foreach(fname IN LISTS arg_NAMES) # TODO better directly set the names
+        set(found FALSE)
+        foreach(suffix IN LISTS arg_SUFFIXES)
+            if(EXISTS "${arg_DIR}/${fname}.${suffix}")
+                list(APPEND "${outvar}" "${fname}.${suffix}")
+                set(found TRUE)
+                break()
+            endif()
+        endforeach()
+        if(NOT found)
+            message(FATAL_ERROR "Unable to find file with name '${fname}' in directory '${arg_DIR}' using '${arg_SUFFIXES}'")
+        endif()
+    endforeach()
+    set("${outvar}" "${${outvar}}" PARENT_SCOPE)
+endfunction()

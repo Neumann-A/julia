@@ -2,6 +2,7 @@ include_guard(GLOBAL)
 
 include(FeatureSummary)
 
+find_package(Git) # For version info generation. 
 #set(JL_DEPS 
 #        CSL LLVM PCRE LIBM LIBUNWIND DSFMT LIBBLASTRAMPOLINE BLAS LAPACK GMP MPFR
 #        LIBSUITESPARSE LIBUV UTF8PROC MBEDTLS LIBSSH2 NGHTTP2 CURL LIBGIT2 PATCHELF

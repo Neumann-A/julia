@@ -1,5 +1,16 @@
+set(jl_common_defines
+        "JL_BUILD_ARCH=\"${JL_ARCH}\""
+        "JL_BUILD_UNAME=\"NT\"" # TODO fix this
+        "JL_SYSTEM_IMAGE_PATH=\"../lib/julia/${CMAKE_SHARED_LIBRARY_PREFIX}sys${CMAKE_SHARED_LIBRARY_SUFFIX}\"" # TODO needs this to be variable?
+        "JL_LIBJULIA_SONAME=\"$<TARGET_FILE_NAME:julia>\""
+        "JL_DISABLE_LIBUNWIND" # TODO fix this
+)
+
+
 add_subdirectory(support)
 add_subdirectory(flisp)
+
+include(utility)
 
 set(JL_IS_RELEASE 1)
 
@@ -20,19 +31,12 @@ set(jl_internal
        "jlapi;signal-handling;safepoint;timing;subtype;rtutils;gc-heap-snapshot"
        "crc32c;APInt-C;processor;ircode;opaque_closure;codegen-stubs;coverage;runtime_ccall"
    )
-
 if(WIN32)
     list(APPEND jl_internal win32_ucontext)
 endif()
+
 set(jl_internal_srcs "")
-foreach(file IN LISTS jl_internal) # TODO better directly set the names
-    foreach(suffix IN ITEMS c cpp h hpp)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}.${suffix}")
-            list(APPEND jl_internal_srcs "${file}.${suffix}")
-            break()
-        endif()
-    endforeach()
-endforeach()
+get_files(jl_internal_srcs NAMES ${jl_internal})
 
 add_library(julia-internal SHARED ${jl_internal_srcs} ${jl_internal_proc_srcs} ${jl_internal_signals_srcs} $<TARGET_OBJECTS:support> $<TARGET_OBJECTS:setjmp_impl>)
 add_library(jl::julia-internal ALIAS julia-internal)
@@ -42,11 +46,7 @@ if(WIN32)
 endif()
 target_compile_definitions(julia-internal PRIVATE 
                                 "JL_LIBRARY_EXPORTS_INTERNAL"
-                                "JL_BUILD_ARCH=\"${JL_ARCH}\""
-                                "JL_BUILD_UNAME=\"NT\"" # TODO fix this
-                                "JL_SYSTEM_IMAGE_PATH=\"../lib/julia/${CMAKE_SHARED_LIBRARY_PREFIX}sys${CMAKE_SHARED_LIBRARY_SUFFIX}\"" # TODO needs this to be variable?
-                                "JL_LIBJULIA_SONAME=\"$<TARGET_FILE_NAME:julia>\""
-                                "JL_DISABLE_LIBUNWIND" # TODO fix this
+                                ${jl_common_defines}
                            )
 target_include_directories(julia-internal PRIVATE "support" "flisp")
 target_include_directories(julia-internal PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")
@@ -76,15 +76,9 @@ set(jl_codegen
 )
 
 set(jl_codegen_srcs "")
-foreach(file IN LISTS jl_codegen)  # TODO better directly set the names
-    foreach(suffix IN ITEMS c cpp h hpp)
-        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${file}.${suffix}")
-            list(APPEND jl_codegen_srcs "${file}.${suffix}")
-            break()
-        endif()
-    endforeach()
-endforeach()
-add_library(julia-codegen SHARED ${jl_codegen_srcs} ${jl_codegen_abi_srcs})
+get_files(jl_codegen_srcs NAMES ${jl_codegen})
+
+add_library(julia-codegen SHARED ${jl_codegen_srcs})
 add_library(jl::julia-codegen ALIAS julia-codegen)
 target_link_libraries(julia-codegen PRIVATE jl::julia-internal jl::julia jl::llvm jl::llvm-codegen jl::libuv)
 if(WIN32)
@@ -92,11 +86,7 @@ if(WIN32)
 endif()
 target_compile_definitions(julia-codegen PRIVATE 
                                 "JL_LIBRARY_EXPORTS_CODEGEN"
-                                "JL_BUILD_ARCH=\"${JL_ARCH}\""
-                                "JL_BUILD_UNAME=\"NT\"" # TODO fix this
-                                "JL_SYSTEM_IMAGE_PATH=\"../lib/julia/${CMAKE_SHARED_LIBRARY_PREFIX}sys${CMAKE_SHARED_LIBRARY_SUFFIX}\"" # TODO needs this to be variable?
-                                "JL_LIBJULIA_SONAME=\"$<TARGET_FILE_NAME:julia>\""
-                                "JL_DISABLE_LIBUNWIND" # TODO fix this
+                                ${jl_common_defines}
                             )
 target_include_directories(julia-internal PRIVATE "support")
 
