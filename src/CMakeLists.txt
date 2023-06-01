@@ -55,7 +55,6 @@ target_include_directories(julia-internal PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURR
 if(MSVC)
  #MSVC has no real 128bit intrinsics so take them from llvm
     target_link_libraries(julia-internal PRIVATE clang_rt.builtins-x86_64.lib)
-    target_compile_options(julia-internal PRIVATE -v)
     target_link_options(julia-internal PRIVATE
                             -NODEFAULTLIB:libcmt
                             -export:__udivti3=__udivti3

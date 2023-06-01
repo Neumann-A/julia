@@ -1946,10 +1946,11 @@ static uint64_t getAddressForFunction(StringRef fname)
 void add_named_global(StringRef name, void *addr)
 {
 #if defined(_MSC_VER)
+    // This seems to not have changed anything. 
     auto twine = "__imp_" + name;
     jl_ExecutionEngine->addGlobalMapping(twine.str(), (uint64_t)(uintptr_t)addr);
+
 #else
-#error "shouldnt' be here"
     jl_ExecutionEngine->addGlobalMapping(name, (uint64_t)(uintptr_t)addr);
 #endif
 }

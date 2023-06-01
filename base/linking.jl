@@ -119,7 +119,7 @@ function ld()
         flavor = "gnu"
     end
 
-    `$(lld()) -flavor $flavor $default_args`
+    `$(lld()) $default_args` #-flavor $flavor 
 end
 
 const WHOLE_ARCHIVE = if Sys.isapple()

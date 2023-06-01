@@ -47,10 +47,11 @@ STATISTIC(SRetCCalls, "Number of ccalls that were marked sret");
 // somewhat unusual variable, in that aotcompile wants to get the address of this for a sanity check
 GlobalVariable *jl_emit_RTLD_DEFAULT_var(Module *M)
 {
+    // So this consistently fixed the linkage. Called by aotcompile.cpp and ccall.cpp
     GlobalVariable * gv = prepare_global_in(M, jlRTLD_DEFAULT_var);
     gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
     //gv->setLinkage(GlobalValue::DLLImportLinkage);
-    gv->setName("__imp_" + gv->getName());
+    //gv->setName("__imp_" + gv->getName());
     return gv;
 }
 
@@ -71,6 +72,9 @@ static bool runtime_sym_gvs(jl_codectx_t &ctx, const char *f_lib, const char *f_
     }
     else if ((intptr_t)f_lib == (intptr_t)JL_LIBJULIA_INTERNAL_DL_LIBNAME) {
         libptrgv = prepare_global_in(M, jldlli_var);
+        // TESTING: So lets test this. NOFIX
+        libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+        //libptrgv->setName("__imp_" + libptrgv->getName());
         symMap = &ctx.emission_context.symMapDlli;
     }
     else if ((intptr_t)f_lib == (intptr_t)JL_LIBJULIA_DL_LIBNAME) {

@@ -78,6 +78,12 @@ static void addComdat(GlobalValue *G, Triple &T)
     if (T.isOSBinFormatCOFF() && !G->isDeclaration()) {
         // add __declspec(dllexport) to everything marked for export
         assert(G->hasExternalLinkage() && "Cannot set DLLExport on non-external linkage!");
+        //if(!G->hasComdat()) {
+        //     Comdat *jl_Comdat = G->getParent()->getOrInsertComdat(G->getName());
+        //     jl_Comdat->setSelectionKind(Comdat::NoDeduplicate);
+        //     GlobalObject * GO = dyn_cast<GlobalObject>(G);
+        //     GO->setComdat(jl_Comdat);
+        //}
         G->setDLLStorageClass(GlobalValue::DLLExportStorageClass);
     }
 }
@@ -482,9 +488,11 @@ void *jl_create_native_impl(jl_array_t *methods, LLVMOrcThreadSafeModuleRef llvm
 
 static object::Archive::Kind getDefaultForHost(Triple &triple)
 {
-      if (triple.isOSDarwin())
-          return object::Archive::K_DARWIN;
-      return object::Archive::K_GNU;
+    if (triple.isOSDarwin())
+        return object::Archive::K_DARWIN;
+    else if (triple.isOSWindows())
+        return object::Archive::K_COFF;
+    return object::Archive::K_GNU;
 }
 
 typedef Error ArchiveWriterError;
@@ -1560,6 +1568,8 @@ void jl_dump_native_impl(void *native_code,
         idxs.resize(data->jl_sysimg_gvars.size());
         std::iota(idxs.begin(), idxs.end(), 0);
         auto gidxs = ConstantDataArray::get(Context, idxs);
+        gidxs->setName("__imp_" + gidxs->getName());
+        gidxs->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
         auto gidxs_var = new GlobalVariable(*dataM, gidxs->getType(), true,
                                             GlobalVariable::ExternalLinkage,
                                             gidxs, "jl_gvar_idxs");
@@ -1579,6 +1589,7 @@ void jl_dump_native_impl(void *native_code,
         // reflect the address of the jl_RTLD_DEFAULT_handle variable
         // back to the caller, so that we can check for consistency issues
         GlobalValue *jlRTLD_DEFAULT_var = jl_emit_RTLD_DEFAULT_var(dataM);
+        jlRTLD_DEFAULT_var->setName("__imp_" + jlRTLD_DEFAULT_var->getName()); //FIX? Yes this fixes it. 
         addComdat(new GlobalVariable(*dataM,
                                      jlRTLD_DEFAULT_var->getType(),
                                      true,

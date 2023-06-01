@@ -298,7 +298,7 @@ string(REPLACE "<LIBRARY>" "" whole_archive "${CMAKE_LINK_LIBRARY_USING_WHOLE_AR
 add_library(sys SHARED "${JULA_PRECOMPILE_DIR}/sys${CMAKE_C_OUTPUT_EXTENSION}")
 add_dependencies(sys sysimg_builder_o)
 target_link_libraries(sys PRIVATE julia julia-internal julia-codegen)
-target_compile_options(sys PRIVATE -fuse-ld=lld-link -v -MT)
+target_compile_options(sys PRIVATE -fuse-ld=lld)
 target_link_options(sys PRIVATE  
                                 /DEFAULTLIB:libucrt.lib 
                                 /DEFAULTLIB:libvcruntime.lib

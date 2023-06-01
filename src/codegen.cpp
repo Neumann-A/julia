@@ -494,9 +494,6 @@ public:
 };
 static inline void add_named_global(JuliaVariable *name, void *addr)
 {
-#if defined(_OS_WINDOWS_) && defined(_MSC_VER)
-    //GlobalVariable * gv = name->realize()
-#endif
     add_named_global(name->name, addr);
 }
 
@@ -553,7 +550,9 @@ static inline void add_named_global(StringRef name, T *addr)
 {
     // cast through integer to avoid c++ pedantic warning about casting between
     // data and code pointers
-    add_named_global(name, (void*)(uintptr_t)addr);
+    //THIS did NOTHING?
+    auto twine = "__imp_" + name;
+    add_named_global(twine.str(), (void*)(uintptr_t)addr);
 }
 
 AttributeSet Attributes(LLVMContext &C, std::initializer_list<Attribute::AttrKind> attrkinds)
@@ -8918,7 +8917,7 @@ static void init_jit_functions(void)
     add_named_global(jlinvoke_func, &jl_invoke);
     add_named_global(jltopeval_func, &jl_toplevel_eval);
     add_named_global(jlcopyast_func, &jl_copy_ast);
-    //add_named_global(jlnsvec_func, &jl_svec);
+    //(jlnsvec_func, &jl_svec);
     add_named_global(jlmethod_func, &jl_method_def);
     add_named_global(jlgenericfunction_func, &jl_generic_function_def);
     add_named_global(jlenter_func, &jl_enter_handler);
