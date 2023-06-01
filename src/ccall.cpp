@@ -47,7 +47,11 @@ STATISTIC(SRetCCalls, "Number of ccalls that were marked sret");
 // somewhat unusual variable, in that aotcompile wants to get the address of this for a sanity check
 GlobalVariable *jl_emit_RTLD_DEFAULT_var(Module *M)
 {
-    return prepare_global_in(M, jlRTLD_DEFAULT_var);
+    GlobalVariable * gv = prepare_global_in(M, jlRTLD_DEFAULT_var);
+    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+    //gv->setLinkage(GlobalValue::DLLImportLinkage);
+    gv->setName("__imp_" + gv->getName());
+    return gv;
 }
 
 

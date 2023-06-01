@@ -10,7 +10,7 @@ const LIBPATH = Ref("")
 const PATH_list = String[]
 const LIBPATH_list = String[]
 const lld_path = Ref{String}()
-const lld_exe = Sys.iswindows() ? "lld.exe" : "lld"
+const lld_exe = Sys.iswindows() ? "lld-link.exe" : "lld"
 const dsymutil_path = Ref{String}()
 const dsymutil_exe = Sys.iswindows() ? "dsymutil.exe" : "dsymutil"
 
@@ -109,8 +109,8 @@ function ld()
     @static if Sys.iswindows()
         # LLD supports mingw style linking
         flavor = "link"
-        m = Sys.ARCH == :x86_64 ? "i386pep" : "i386pe"
-        default_args = `-force:multiple` #-m $m -Bdynamic --enable-auto-image-base 
+        m = Sys.ARCH == :x86_64 ? "X64" : "X86"
+        default_args = `-force:multiple -machine:$m` #-m $m -Bdynamic --enable-auto-image-base 
     elseif Sys.isapple()
         flavor = "darwin"
         arch = Sys.ARCH == :aarch64 ? :arm64 : Sys.ARCH

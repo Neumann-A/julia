@@ -1945,7 +1945,13 @@ static uint64_t getAddressForFunction(StringRef fname)
 // helper function for adding a DLLImport (dlsym) address to the execution engine
 void add_named_global(StringRef name, void *addr)
 {
+#if defined(_MSC_VER)
+    auto twine = "__imp_" + name;
+    jl_ExecutionEngine->addGlobalMapping(twine.str(), (uint64_t)(uintptr_t)addr);
+#else
+#error "shouldnt' be here"
     jl_ExecutionEngine->addGlobalMapping(name, (uint64_t)(uintptr_t)addr);
+#endif
 }
 
 extern "C" JL_DLLEXPORT_CODEGEN

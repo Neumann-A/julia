@@ -480,17 +480,23 @@ public:
     JuliaVariable(const JuliaVariable&) = delete;
     JuliaVariable(const JuliaVariable&&) = delete;
     GlobalVariable *realize(Module *m) {
-        if (GlobalValue *V = m->getNamedValue(name))
+        if (GlobalValue *V = m->getNamedValue(name)) {
             return cast<GlobalVariable>(V);
+        }
         auto T_size = m->getDataLayout().getIntPtrType(m->getContext());
-        return new GlobalVariable(*m, _type(T_size),
+        auto gv = new GlobalVariable(*m, _type(T_size),
                 isconst, GlobalVariable::ExternalLinkage,
                 NULL, name);
+        //gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+        return gv;
     }
     GlobalVariable *realize(jl_codectx_t &ctx);
 };
 static inline void add_named_global(JuliaVariable *name, void *addr)
 {
+#if defined(_OS_WINDOWS_) && defined(_MSC_VER)
+    //GlobalVariable * gv = name->realize()
+#endif
     add_named_global(name->name, addr);
 }
 
@@ -620,40 +626,40 @@ static AttributeList get_attrs_zext(LLVMContext &C)
 
 // global vars
 static const auto jlRTLD_DEFAULT_var = new JuliaVariable{
-    "__imp_" XSTR(jl_RTLD_DEFAULT_handle), // "__imp_"?
+    XSTR(jl_RTLD_DEFAULT_handle), // "__imp_"?
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jlexe_var = new JuliaVariable{
-    "__imp_" XSTR(jl_exe_handle),
+    XSTR(jl_exe_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jldll_var = new JuliaVariable{
-    "__imp_" XSTR(jl_libjulia_handle),
+    XSTR(jl_libjulia_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jldlli_var = new JuliaVariable{
-    "__imp_" XSTR(jl_libjulia_internal_handle),
+    XSTR(jl_libjulia_internal_handle),
     true,
     [](Type *T_size) -> Type * { return getInt8PtrTy(T_size->getContext()); },
 };
 static const auto jlsmall_typeof_var = new JuliaVariable{
-    "__imp_" XSTR(small_typeof),
+    XSTR(small_typeof),
     true,
     [](Type *T_size) -> Type * { return getInt8Ty(T_size->getContext()); },
 };
 
 __declspec(dllimport) extern "C" uintptr_t __stack_chk_guard;
 static const auto jlstack_chk_guard_var = new JuliaVariable{
-    "__imp_" XSTR(__stack_chk_guard),
+    XSTR(__stack_chk_guard),
     true,
     [](Type *T_size) -> Type * { return get_pjlvalue(T_size->getContext()); },
 };
 
 static const auto jlgetworld_global = new JuliaVariable{
-    "__imp_" XSTR(jl_world_counter),
+    XSTR(jl_world_counter),
     false,
     [](Type *T_size) -> Type * { return T_size; },
 };
@@ -1741,6 +1747,7 @@ static jl_cgval_t emit_new_struct(jl_codectx_t &ctx, jl_value_t *ty, size_t narg
 static jl_cgval_t emit_invoke(jl_codectx_t &ctx, const jl_cgval_t &lival, const jl_cgval_t *argv, size_t nargs, jl_value_t *rt);
 
 static Value *literal_pointer_val(jl_codectx_t &ctx, jl_value_t *p);
+
 static GlobalVariable *prepare_global_in(Module *M, GlobalVariable *G);
 
 static GlobalVariable *prepare_global_in(Module *M, JuliaVariable *G)
@@ -1770,9 +1777,17 @@ static inline GlobalVariable *prepare_global_in(Module *M, GlobalVariable *G)
         proto->setDLLStorageClass(GlobalValue::DefaultStorageClass);// GlobalValue::DefaultStorageClass);
         return proto;
     }
+    //GlobalVariable *gv = cast<GlobalVariable>(local);
+    //gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
     return cast<GlobalVariable>(local);
 }
 
+static GlobalVariable *prepare_global_barrier(Module *M) {
+    GlobalVariable * gv = prepare_global_in(M,jlgetworld_global);
+    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+    //gv->setLinkage(GlobalValue::DLLImportLinkage);
+    return gv;
+};
 
 // --- convenience functions for tagging llvm values with julia types ---
 
@@ -6033,7 +6048,7 @@ static Function* gen_cfun_wrapper(
             ctx.builder.CreateAlignedLoad(ctx.types().T_size, world_age_field, ctx.types().alignof_ptr));
 
     Value *world_v = ctx.builder.CreateAlignedLoad(ctx.types().T_size,
-        prepare_global_in(jl_Module, jlgetworld_global), ctx.types().alignof_ptr);
+        prepare_global_barrier(jl_Module), ctx.types().alignof_ptr);
     cast<LoadInst>(world_v)->setOrdering(AtomicOrdering::Acquire);
 
     Value *age_ok = NULL;
@@ -7842,7 +7857,7 @@ static jl_llvm_functions_t
     // step 11a. For top-level code, load the world age
     if (toplevel && !ctx.is_opaque_closure) {
         LoadInst *world = ctx.builder.CreateAlignedLoad(ctx.types().T_size,
-            prepare_global_in(jl_Module, jlgetworld_global), ctx.types().alignof_ptr);
+            prepare_global_barrier(jl_Module), ctx.types().alignof_ptr);
         world->setOrdering(AtomicOrdering::Acquire);
         ctx.builder.CreateAlignedStore(world, world_age_field, ctx.types().alignof_ptr);
     }
@@ -8422,7 +8437,7 @@ static jl_llvm_functions_t
                     // we're at toplevel; insert an atomic barrier between every instruction
                     // TODO: inference is invalid if this has any effect (which it often does)
                     LoadInst *world = new LoadInst(ctx.types().T_size,
-                        prepare_global_in(jl_Module, jlgetworld_global), Twine(),
+                        prepare_global_barrier(jl_Module), Twine(),
                         /*isVolatile*/false, ctx.types().alignof_ptr, /*insertBefore*/&I);
                     world->setOrdering(AtomicOrdering::Acquire);
                     StoreInst *store_world = new StoreInst(world, world_age_field,
