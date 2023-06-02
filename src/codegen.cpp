@@ -551,8 +551,11 @@ static inline void add_named_global(StringRef name, T *addr)
     // cast through integer to avoid c++ pedantic warning about casting between
     // data and code pointers
     //THIS did NOTHING?
-    auto twine = "__imp_" + name;
-    add_named_global(twine.str(), (void*)(uintptr_t)addr);
+
+    //auto twine = "__imp_" + name;
+    //add_named_global(twine.str(), (void*)(uintptr_t)addr);
+
+    add_named_global(name, (void*)(uintptr_t)addr);
 }
 
 AttributeSet Attributes(LLVMContext &C, std::initializer_list<Attribute::AttrKind> attrkinds)
@@ -4280,6 +4283,8 @@ static jl_cgval_t emit_call_specfun_boxed(jl_codectx_t &ctx, jl_value_t *jlretty
                                     GlobalVariable::ExternalLinkage,
                                     Constant::getNullValue(pfunc),
                                     namep);
+            GV->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Last added; didn't do anything
+            GV->setName("__imp_" + GV->getName()); // Last added
             ctx.external_calls[std::make_tuple(fromexternal, false)] = GV;
         }
         jl_aliasinfo_t ai = jl_aliasinfo_t::fromTBAA(ctx, ctx.tbaa().tbaa_const);

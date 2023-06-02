@@ -1446,6 +1446,7 @@ JuliaOJIT::~JuliaOJIT() = default;
 orc::SymbolStringPtr JuliaOJIT::mangle(StringRef Name)
 {
     std::string MangleName = getMangledName(Name);
+    llvm::outs() << "Mangled name of '" << Name << "' is '" << MangleName <<"'\n";
     return ES.intern(MangleName);
 }
 
@@ -1464,8 +1465,9 @@ void JuliaOJIT::addModule(orc::ThreadSafeModule TSM)
         shareStrings(M);
         for (auto &F : M.global_values()) {
             if (!F.isDeclaration() && F.getLinkage() == GlobalValue::ExternalLinkage) {
+                //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); did not do anything. 
                 auto Name = ES.intern(getMangledName(F.getName()));
-                NewExports.add(std::move(Name));
+                NewExports.add(Name);
             }
         }
 #if !defined(JL_NDEBUG) && !defined(JL_USE_JITLINK)
@@ -1728,7 +1730,7 @@ void jl_merge_module(orc::ThreadSafeModule &destTSM, orc::ThreadSafeModule srcTS
                 sG->removeFromParent();
                 dest.getGlobalList().push_back(sG);
                 // Comdat is owned by the Module
-                sG->setComdat(nullptr);
+                //sG->setComdat(nullptr);
             }
 
             for (Module::iterator I = src.begin(), E = src.end(); I != E;) {
@@ -1752,7 +1754,7 @@ void jl_merge_module(orc::ThreadSafeModule &destTSM, orc::ThreadSafeModule srcTS
                 sG->removeFromParent();
                 dest.getFunctionList().push_back(sG);
                 // Comdat is owned by the Module
-                sG->setComdat(nullptr);
+                //sG->setComdat(nullptr);
             }
 
             for (Module::alias_iterator I = src.alias_begin(), E = src.alias_end(); I != E;) {
@@ -1945,7 +1947,7 @@ static uint64_t getAddressForFunction(StringRef fname)
 // helper function for adding a DLLImport (dlsym) address to the execution engine
 void add_named_global(StringRef name, void *addr)
 {
-#if defined(_MSC_VER)
+#if 0 //defined(_MSC_VER)
     // This seems to not have changed anything. 
     auto twine = "__imp_" + name;
     jl_ExecutionEngine->addGlobalMapping(twine.str(), (uint64_t)(uintptr_t)addr);

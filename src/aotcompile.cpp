@@ -437,6 +437,8 @@ void *jl_create_native_impl(jl_array_t *methods, LLVMOrcThreadSafeModuleRef llvm
         G->setLinkage(GlobalValue::ExternalLinkage);
         G->setVisibility(GlobalValue::HiddenVisibility);
         G->setDSOLocal(true);
+        //G->setName("__imp_" + G->getName());
+        //G->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
         data->jl_sysimg_gvars.push_back(G);
     }
     CreateNativeGlobals += gvars.size();
@@ -1568,8 +1570,8 @@ void jl_dump_native_impl(void *native_code,
         idxs.resize(data->jl_sysimg_gvars.size());
         std::iota(idxs.begin(), idxs.end(), 0);
         auto gidxs = ConstantDataArray::get(Context, idxs);
-        gidxs->setName("__imp_" + gidxs->getName());
-        gidxs->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+        //gidxs->setName("__imp_" + gidxs->getName());
+        //gidxs->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
         auto gidxs_var = new GlobalVariable(*dataM, gidxs->getType(), true,
                                             GlobalVariable::ExternalLinkage,
                                             gidxs, "jl_gvar_idxs");
@@ -2102,8 +2104,11 @@ void jl_get_llvmf_defn_impl(jl_llvmf_dump_t* dump, jl_method_instance_t *mi, siz
             // For imaging mode, global constants are currently private without initializer
             // which isn't legal. Convert them to extern linkage so that the code can compile
             // and will better match what's actually in sysimg.
-            for (auto &global : output.globals)
+            for (auto &global : output.globals) {
                 global.second->setLinkage(GlobalValue::ExternalLinkage);
+                //global.second->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Last added; didn't do anything
+                //global.second->setName("__imp_" + global.second->getName()); // Last added
+            }
             assert(!verifyModule(*m.getModuleUnlocked(), &errs()));
             if (optimize) {
 #ifndef JL_USE_NEW_PM

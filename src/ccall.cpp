@@ -73,7 +73,7 @@ static bool runtime_sym_gvs(jl_codectx_t &ctx, const char *f_lib, const char *f_
     else if ((intptr_t)f_lib == (intptr_t)JL_LIBJULIA_INTERNAL_DL_LIBNAME) {
         libptrgv = prepare_global_in(M, jldlli_var);
         // TESTING: So lets test this. NOFIX
-        libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
         //libptrgv->setName("__imp_" + libptrgv->getName());
         symMap = &ctx.emission_context.symMapDlli;
     }

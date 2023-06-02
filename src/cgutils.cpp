@@ -356,6 +356,8 @@ static Constant *julia_pgv(jl_codectx_t &ctx, const char *cname, void *addr)
         gv = new GlobalVariable(*M, ctx.types().T_pjlvalue,
                                 false, GlobalVariable::ExternalLinkage,
                                 NULL, localname);
+        //gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Last added; didn't do anything
+        //gv->setName("__imp_" + gv->getName()); // Last added
     // LLVM passes sometimes strip metadata when moving load around
     // since the load at the new location satisfy the same condition as the original one.
     // Mark the global as constant to LLVM code using our own metadata
@@ -409,9 +411,13 @@ static Constant *literal_pointer_val_slot(jl_codectx_t &ctx, jl_value_t *p)
         gv->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
         return gv;
     }
-    if (JuliaVariable *gv = julia_const_gv(p)) {
+    if (JuliaVariable *jgv = julia_const_gv(p)) {
         // if this is a known special object, use the existing GlobalValue
-        return prepare_global_in(jl_Module, gv);
+        GlobalVariable *gv = prepare_global_in(jl_Module, jgv);
+        //auto name = gv->getName();
+        //gv->setName("__imp_" + name);
+        gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // This fixes all the undefined julia variables. 
+        return gv;
     }
     if (jl_is_datatype(p)) {
         jl_datatype_t *addr = (jl_datatype_t*)p;
@@ -3103,7 +3109,12 @@ static Value *as_value(jl_codectx_t &ctx, Type *to, const jl_cgval_t &v)
 static Value *load_i8box(jl_codectx_t &ctx, Value *v, jl_datatype_t *ty)
 {
     auto jvar = ty == jl_int8_type ? jlboxed_int8_cache : jlboxed_uint8_cache;
+    //jvar->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+    //jvar->setName("__imp_" + libptrgv->getName());
     GlobalVariable *gv = prepare_global_in(jl_Module, jvar);
+
+    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+
     Value *idx[] = {ConstantInt::get(getInt32Ty(ctx.builder.getContext()), 0), ctx.builder.CreateZExt(v, getInt32Ty(ctx.builder.getContext()))};
     auto slot = ctx.builder.CreateInBoundsGEP(gv->getValueType(), gv, idx);
     jl_aliasinfo_t ai = jl_aliasinfo_t::fromTBAA(ctx, ctx.tbaa().tbaa_const);
