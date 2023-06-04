@@ -245,7 +245,7 @@ add_custom_target(
 install(FILES "${JULA_PRECOMPILE_DIR}/sys-o0.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
 
 add_custom_target(
-    sysimg_builder_ji ALL
+    sysimg_builder_ji 
     COMMAND echo "Running generate_precompile.jl for sys.ji"
     COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
@@ -266,7 +266,7 @@ add_custom_target(
     DEPENDS sys_o0_ji
 )
 
-install(FILES "${JULA_PRECOMPILE_DIR}/sys.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
+#install(FILES "${JULA_PRECOMPILE_DIR}/sys.ji" DESTINATION "${CMAKE_INSTALL_LIBDIR}/julia")
 
 add_custom_target(
     sysimg_builder_o ALL
@@ -280,7 +280,7 @@ add_custom_target(
         --warn-overwrite=yes 
         -g${BOOTSTRAP_DEBUG_LEVEL} 
         --trace-compile=stderr 
-        -O3
+        -O0
         --sysimage "${JULA_PRECOMPILE_DIR}/sys-o0.ji" 
         "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/generate_precompile.jl"
     COMMAND echo "Finished generate_precompile.jl"
@@ -300,14 +300,15 @@ add_dependencies(sys sysimg_builder_o)
 target_link_libraries(sys PRIVATE julia julia-internal julia-codegen)
 target_compile_options(sys PRIVATE -fuse-ld=lld)
 target_link_options(sys PRIVATE  
-                                /DEFAULTLIB:libucrt.lib 
-                                /DEFAULTLIB:libvcruntime.lib
-                                /DEFAULTLIB:libcmt.lib
-                                /DEFAULTLIB:oldnames.lib 
+                               # /DEFAULTLIB:libucrt.lib 
+                               # /DEFAULTLIB:libvcruntime.lib
+                               # /DEFAULTLIB:libcmt.lib
+                               # /DEFAULTLIB:oldnames.lib 
  )
 set_property(TARGET sys PROPERTY
   MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_target_properties(sys PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(sys PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${JULA_PRECOMPILE_DIR}")
 # add_custom_target(
 #     sys_shared ALL
 #     COMMAND ${CMAKE_LINKER}
