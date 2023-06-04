@@ -133,6 +133,7 @@ static Value *runtime_sym_lookup(
         GlobalVariable *libptrgv,
         GlobalVariable *llvmgv, bool runtime_lib)
 {
+    //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
     ++RuntimeSymLookups;
     // in pseudo-code, this function emits the following:
     //   global HMODULE *libptrgv
@@ -214,6 +215,7 @@ static Value *runtime_sym_lookup(
         PointerType *funcptype, const char *f_lib, jl_value_t *lib_expr,
         const char *f_name, Function *f)
 {
+   //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Global is marked as dllimport, but not external
     auto T_pvoidfunc = JuliaType::get_pvoidfunc_ty(ctx.builder.getContext());
     GlobalVariable *libptrgv;
     GlobalVariable *llvmgv;
@@ -1003,6 +1005,7 @@ static jl_cgval_t emit_llvmcall(jl_codectx_t &ctx, jl_value_t **args, size_t nar
     FunctionType *decl_typ = FunctionType::get(rettype, argtypes, def->isVarArg());
     Function *decl = Function::Create(decl_typ, def->getLinkage(), def->getAddressSpace(),
                                       def->getName(), jl_Module);
+    //decl->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
     decl->setAttributes(def->getAttributes());
     CallInst *inst = ctx.builder.CreateCall(decl, argvals);
 
@@ -2110,6 +2113,7 @@ jl_cgval_t function_sig_t::emit_a_ccall(
                 // since we aren't saving this code, there's no sense in
                 // putting anything complicated here: just JIT the function address
                 llvmf = literal_static_pointer_val(symaddr, funcptype);
+                
             }
         }
     }

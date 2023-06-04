@@ -827,6 +827,7 @@ static void replaceUsesWithLoad(Function &F, Type *T_size, I2GV should_replace, 
             GlobalVariable *slot = should_replace(*use_i);
             if (!slot)
                 continue;
+            //slot->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
             Instruction *insert_before = use_i;
             if (auto phi = dyn_cast<PHINode>(use_i))
                 insert_before = phi->getIncomingBlock(*info.use)->getTerminator();

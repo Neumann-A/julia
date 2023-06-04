@@ -340,6 +340,7 @@ static Constant *julia_pgv(jl_codectx_t &ctx, const char *cname, void *addr)
     // store the name given so we can reuse it (facilitating merging later)
     // so first see if there already is a GlobalVariable for this address
     GlobalVariable* &gv = ctx.global_targets[addr];
+    //gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //TEST this further?
     Module *M = jl_Module;
     StringRef localname;
     std::string gvname;
@@ -3593,6 +3594,7 @@ static Value *emit_new_bits(jl_codectx_t &ctx, Value *jt, Value *pval)
 {
     pval = ctx.builder.CreateBitCast(pval, getInt8PtrTy(ctx.builder.getContext()));
     Function *F = prepare_call(jl_newbits_func);
+    //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //nope
     auto call = ctx.builder.CreateCall(F, { jt, pval });
     call->setAttributes(F->getAttributes());
     return call;

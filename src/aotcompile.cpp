@@ -1146,6 +1146,7 @@ static void materializePreserved(Module &M, Partition &partition) {
                 if (GA.getValueType()->isFunctionTy()) {
                     auto F = Function::Create(cast<FunctionType>(GA.getValueType()), GlobalValue::ExternalLinkage, "", &M);
                     // This is an extremely sad hack to make sure the global alias never points to an extern function
+                    //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing
                     auto BB = BasicBlock::Create(M.getContext(), "", F);
                     new UnreachableInst(M.getContext(), BB);
                     GA.setAliasee(F);
@@ -2142,6 +2143,7 @@ void jl_get_llvmf_defn_impl(jl_llvmf_dump_t* dump, jl_method_instance_t *mi, siz
             auto end = jl_hrtime();
             jl_atomic_fetch_add_relaxed(&jl_cumulative_compile_time, end - compiler_start_time);
         }
+        //TESTDLLIMPORTHERE
         if (F) {
             dump->TSM = wrap(new orc::ThreadSafeModule(std::move(m)));
             dump->F = wrap(F);

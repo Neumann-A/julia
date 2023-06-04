@@ -5501,9 +5501,12 @@ static jl_cgval_t emit_expr(jl_codectx_t &ctx, jl_value_t *expr, ssize_t ssaidx_
         if (jl_is_symbol(sym)) {
             jl_binding_t *bnd = NULL;
             Value *bp = global_binding_pointer(ctx, mod, sym, &bnd, true);
-            if (bp)
-                ctx.builder.CreateCall(prepare_call(jldeclareconst_func),
+            if (bp) {
+                auto f = prepare_call(jldeclareconst_func);
+                //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
+                ctx.builder.CreateCall(f,
                         { bp, literal_pointer_val(ctx, (jl_value_t*)mod), literal_pointer_val(ctx, (jl_value_t*)sym) });
+            }
         }
     }
     else if (head == jl_new_sym) {
@@ -6033,6 +6036,7 @@ static Function* gen_cfun_wrapper(
             funcName, M);
     jl_init_function(cw, params.TargetTriple);
     cw->setAttributes(AttributeList::get(M->getContext(), {attributes, cw->getAttributes()}));
+    //cw->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Nope
 
     jl_codectx_t ctx(M->getContext(), params);
     ctx.f = cw;
@@ -6943,6 +6947,7 @@ static jl_returninfo_t get_specsig_function(jl_codectx_t &ctx, Module *M, Value 
         if (f == NULL) {
             f = Function::Create(ftype, GlobalVariable::ExternalLinkage, name, M);
             jl_init_function(f, ctx.emission_context.TargetTriple);
+            //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass);  //NOpe
             f->setAttributes(AttributeList::get(f->getContext(), {attributes, f->getAttributes()}));
         }
         else {
@@ -7187,7 +7192,7 @@ static jl_llvm_functions_t
         f = cast<Function>(returninfo.decl.getCallee());
         has_sret = (returninfo.cc == jl_returninfo_t::SRet || returninfo.cc == jl_returninfo_t::Union);
         jl_init_function(f, ctx.emission_context.TargetTriple);
-
+        //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass);//Nope
         // common pattern: see if all return statements are an argument in that
         // case the apply-generic call can re-use the original box for the return
         int retarg = [stmts, nreq]() {
@@ -7225,6 +7230,7 @@ static jl_llvm_functions_t
                              GlobalVariable::ExternalLinkage,
                              declarations.specFunctionObject, M);
         jl_init_function(f, ctx.emission_context.TargetTriple);
+        //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass);//Nope
         f->setAttributes(AttributeList::get(ctx.builder.getContext(), {get_func_attrs(ctx.builder.getContext()), f->getAttributes()}));
         returninfo.decl = f;
         declarations.functionObject = needsparams ? "jl_fptr_sparam" : "jl_fptr_args";
@@ -8587,6 +8593,8 @@ static jl_llvm_functions_t jl_emit_oc_wrapper(orc::ThreadSafeModule &m, jl_codeg
         jl_returninfo_t returninfo = get_specsig_function(ctx, M, NULL, funcName, mi->specTypes, rettype, 1);
         Function *gf_thunk = cast<Function>(returninfo.decl.getCallee());
         jl_init_function(gf_thunk, ctx.emission_context.TargetTriple);
+        llvm::outs() << "Function name: " << funcName << "\n";
+        //gf_thunk->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing
         size_t nrealargs = jl_nparams(mi->specTypes);
         emit_cfunc_invalidate(gf_thunk, returninfo.cc, returninfo.return_roots, mi->specTypes, rettype, true, nrealargs, ctx.emission_context);
         declarations.specFunctionObject = funcName;
