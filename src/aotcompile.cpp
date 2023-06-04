@@ -384,6 +384,7 @@ void *jl_create_native_impl(jl_array_t *methods, LLVMOrcThreadSafeModuleRef llvm
         assert(specsig && "Error external_fns doesn't handle non-specsig yet");
         (void) specsig;
         GlobalVariable *F = extern_fn.second;
+        //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // NOpe
         size_t idx = gvars.size() - offset;
         assert(idx >= 0);
         assert(idx < data->jl_external_to_llvm.size());
@@ -1019,6 +1020,7 @@ static void add_output_impl(Module &M, TargetMachine &SourceTM, std::string *out
             inject_aliases = true;
             break;
         }
+
     }
     // no need to inject aliases if we have no functions
 
@@ -1152,6 +1154,7 @@ static void materializePreserved(Module &M, Partition &partition) {
                 }
                 else {
                     auto GV = new GlobalVariable(M, GA.getValueType(), false, GlobalValue::ExternalLinkage, Constant::getNullValue(GA.getValueType()));
+                    //GV->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
                     DeletedAliases.push_back({ &GA, GV });
                 }
             }
@@ -1571,7 +1574,7 @@ void jl_dump_native_impl(void *native_code,
         std::iota(idxs.begin(), idxs.end(), 0);
         auto gidxs = ConstantDataArray::get(Context, idxs);
         //gidxs->setName("__imp_" + gidxs->getName());
-        //gidxs->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+        //gidxs->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
         auto gidxs_var = new GlobalVariable(*dataM, gidxs->getType(), true,
                                             GlobalVariable::ExternalLinkage,
                                             gidxs, "jl_gvar_idxs");
@@ -1591,14 +1594,16 @@ void jl_dump_native_impl(void *native_code,
         // reflect the address of the jl_RTLD_DEFAULT_handle variable
         // back to the caller, so that we can check for consistency issues
         GlobalValue *jlRTLD_DEFAULT_var = jl_emit_RTLD_DEFAULT_var(dataM);
-        jlRTLD_DEFAULT_var->setName("__imp_" + jlRTLD_DEFAULT_var->getName()); //FIX? Yes this fixes it. 
-        addComdat(new GlobalVariable(*dataM,
+        jlRTLD_DEFAULT_var->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
+        //jlRTLD_DEFAULT_var->setName("__imp_" + jlRTLD_DEFAULT_var->getName()); //FIX? Yes this fixes it. 
+        auto gv = new GlobalVariable(*dataM,
                                      jlRTLD_DEFAULT_var->getType(),
                                      true,
                                      GlobalVariable::ExternalLinkage,
                                      jlRTLD_DEFAULT_var,
-                                     "jl_RTLD_DEFAULT_handle_pointer"), TheTriple);
-
+                                     "jl_RTLD_DEFAULT_handle_pointer");
+        addComdat(gv, TheTriple);
+        //gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Global is marked as dllimport, but not external
         // let the compiler know we are going to internalize a copy of this,
         // if it has a current usage with ExternalLinkage
         auto small_typeof_copy = dataM->getGlobalVariable("small_typeof");

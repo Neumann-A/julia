@@ -480,7 +480,9 @@ static jl_datatype_t *staticeval_bitstype(const jl_cgval_t &targ)
 
 static jl_cgval_t emit_runtime_call(jl_codectx_t &ctx, JL_I::intrinsic f, const jl_cgval_t *argv, size_t nargs)
 {
+
     Function *func = prepare_call(runtime_func()[f]);
+    //func->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
     SmallVector<Value *> argvalues(nargs);
     for (size_t i = 0; i < nargs; ++i) {
         argvalues[i] = boxed(ctx, argv[i]);

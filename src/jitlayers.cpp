@@ -149,6 +149,7 @@ void jl_link_global(GlobalVariable *GV, void *addr) JL_NOTSAFEPOINT
         // emit external non-const symbol to avoid LLVM optimizing the code
         // similar to non-imaging mode.
         GV->setLinkage(GlobalValue::ExternalLinkage);
+        //GV->setDLLStorageClass(GlobalValue::DLLImportStorageClass);//Nothing?
     }
     else {
         GV->setConstant(true);
@@ -231,6 +232,7 @@ static jl_callptr_t _jl_compile_codeinst(
                 for (auto &GV : M->globals()) {
                     auto InitValue = NewGlobals.find(GV.getName());
                     if (InitValue != NewGlobals.end()) {
+                        //GV.setDLLStorageClass(GlobalValue::DLLImportStorageClass);//Nothing?
                         jl_link_global(&GV, InitValue->second);
                     }
                 }
@@ -1027,9 +1029,10 @@ namespace {
 #ifdef FORCE_ELF
         force_elf = true;
 #endif
-        if (force_elf) {
+
+       if (force_elf) {
             TheTriple.setObjectFormat(Triple::ELF);
-        }
+       }
         //options.PrintMachineCode = true; //Print machine code produced during JIT compiling
 #if defined(MSAN_EMUTLS_WORKAROUND)
         options.EmulatedTLS = true;
@@ -1045,6 +1048,7 @@ namespace {
             jl_errorf("Internal problem with process triple %s lookup: %s", TheTriple.str().c_str(), errorstr.c_str());
             return nullptr;
         }
+
         if (jl_processor_print_help || (target_flags & JL_TARGET_UNKNOWN_NAME)) {
             std::unique_ptr<MCSubtargetInfo> MSTI(
                 TheTarget->createMCSubtargetInfo(TheTriple.str(), "", ""));
@@ -1059,7 +1063,7 @@ namespace {
                 MSTI->setDefaultFeatures("help", "", "");
             }
         }
-        // Package up features to be passed to target/subtarget
+         // Package up features to be passed to target/subtarget
         std::string FeaturesStr;
         if (!targetFeatures.empty()) {
             SubtargetFeatures Features;
@@ -1446,7 +1450,7 @@ JuliaOJIT::~JuliaOJIT() = default;
 orc::SymbolStringPtr JuliaOJIT::mangle(StringRef Name)
 {
     std::string MangleName = getMangledName(Name);
-    llvm::outs() << "Mangled name of '" << Name << "' is '" << MangleName <<"'\n";
+    //llvm::outs() << "Mangled name of '" << Name << "' is '" << MangleName <<"'\n";
     return ES.intern(MangleName);
 }
 
@@ -1465,7 +1469,7 @@ void JuliaOJIT::addModule(orc::ThreadSafeModule TSM)
         shareStrings(M);
         for (auto &F : M.global_values()) {
             if (!F.isDeclaration() && F.getLinkage() == GlobalValue::ExternalLinkage) {
-                //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); did not do anything. 
+                //F.setDLLStorageClass(GlobalValue::DLLImportStorageClass); //does not work.
                 auto Name = ES.intern(getMangledName(F.getName()));
                 NewExports.add(Name);
             }
@@ -1754,7 +1758,7 @@ void jl_merge_module(orc::ThreadSafeModule &destTSM, orc::ThreadSafeModule srcTS
                 sG->removeFromParent();
                 dest.getFunctionList().push_back(sG);
                 // Comdat is owned by the Module
-                //sG->setComdat(nullptr);
+                sG->setComdat(nullptr);
             }
 
             for (Module::alias_iterator I = src.alias_begin(), E = src.alias_end(); I != E;) {
@@ -1896,6 +1900,7 @@ static int jl_add_to_ee(
     M.withModuleDo([&](Module &m) JL_NOTSAFEPOINT {
         for (auto &F : m.global_objects()) {
             if (F.isDeclaration() && F.getLinkage() == GlobalValue::ExternalLinkage) {
+                //F.setDLLStorageClass(GlobalValue::DLLImportStorageClass);
                 auto Callee = NewExports.find(F.getName());
                 if (Callee != NewExports.end()) {
                     auto *CM = Callee->second;

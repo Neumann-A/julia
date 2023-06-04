@@ -110,7 +110,7 @@ function ld()
         # LLD supports mingw style linking
         flavor = "link"
         m = Sys.ARCH == :x86_64 ? "X64" : "X86"
-        default_args = `-force:multiple -machine:$m` #-m $m -Bdynamic --enable-auto-image-base 
+        default_args = `-force:unresolved -machine:$m` #-m $m -Bdynamic --enable-auto-image-base 
     elseif Sys.isapple()
         flavor = "darwin"
         arch = Sys.ARCH == :aarch64 ? :arm64 : Sys.ARCH

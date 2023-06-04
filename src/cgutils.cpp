@@ -306,6 +306,7 @@ static Value *emit_pointer_from_objref(jl_codectx_t &ctx, Value *V)
     if (V->getType() != T)
         V = ctx.builder.CreateBitCast(V, T);
     Function *F = prepare_call(pointer_from_objref_func);
+    // F->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
     CallInst *Call = ctx.builder.CreateCall(F, V);
     Call->setAttributes(F->getAttributes());
     ++EmittedPointerFromObjref;
@@ -424,7 +425,9 @@ static Constant *literal_pointer_val_slot(jl_codectx_t &ctx, jl_value_t *p)
         if (addr->smalltag) {
             // some common builtin datatypes have a special pool for accessing them by smalltag id
             Constant *tag = ConstantInt::get(getInt32Ty(ctx.builder.getContext()), addr->smalltag << 4);
-            Constant *smallp = ConstantExpr::getInBoundsGetElementPtr(getInt8Ty(ctx.builder.getContext()), prepare_global_in(jl_Module, jlsmall_typeof_var), tag);
+            GlobalVariable *gv = prepare_global_in(jl_Module, jlsmall_typeof_var);
+            // gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
+            Constant *smallp = ConstantExpr::getInBoundsGetElementPtr(getInt8Ty(ctx.builder.getContext()), gv , tag);
             return ConstantExpr::getBitCast(smallp, ctx.types().T_ppjlvalue);
         }
         // DataTypes are prefixed with a +
@@ -1653,8 +1656,10 @@ static std::pair<Value*, bool> emit_isa(jl_codectx_t &ctx, const jl_cgval_t &x, 
         return {res, false};
     }
     // everything else can be handled via subtype tests
+    auto f = prepare_call(jlsubtype_func);
+    //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //nope
     return std::make_pair(ctx.builder.CreateICmpNE(
-            ctx.builder.CreateCall(prepare_call(jlsubtype_func),
+            ctx.builder.CreateCall(f,
               { emit_typeof(ctx, x, false, false),
                 track_pjlvalue(ctx, literal_pointer_val(ctx, type)) }),
             ConstantInt::get(getInt32Ty(ctx.builder.getContext()), 0)), false);
@@ -3093,6 +3098,7 @@ template<typename TypeFn_t>
 static Value *call_with_attrs(jl_codectx_t &ctx, JuliaFunction<TypeFn_t> *intr, Value *v)
 {
     Function *F = prepare_call(intr);
+    //F->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
     CallInst *Call = ctx.builder.CreateCall(F, v);
     Call->setAttributes(F->getAttributes());
     return Call;
@@ -3113,7 +3119,7 @@ static Value *load_i8box(jl_codectx_t &ctx, Value *v, jl_datatype_t *ty)
     //jvar->setName("__imp_" + libptrgv->getName());
     GlobalVariable *gv = prepare_global_in(jl_Module, jvar);
 
-    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // This fixed the jlboxed_int8_cache/jlboxed_uint8_cache undefed vars
 
     Value *idx[] = {ConstantInt::get(getInt32Ty(ctx.builder.getContext()), 0), ctx.builder.CreateZExt(v, getInt32Ty(ctx.builder.getContext()))};
     auto slot = ctx.builder.CreateInBoundsGEP(gv->getValueType(), gv, idx);

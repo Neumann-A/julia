@@ -1786,7 +1786,7 @@ static inline GlobalVariable *prepare_global_in(Module *M, GlobalVariable *G)
 
 static GlobalVariable *prepare_global_barrier(Module *M) {
     GlobalVariable * gv = prepare_global_in(M,jlgetworld_global);
-    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
+    gv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //unresolved external symbol jl_world_counter
     //gv->setLinkage(GlobalValue::DLLImportLinkage);
     return gv;
 };
@@ -4283,8 +4283,8 @@ static jl_cgval_t emit_call_specfun_boxed(jl_codectx_t &ctx, jl_value_t *jlretty
                                     GlobalVariable::ExternalLinkage,
                                     Constant::getNullValue(pfunc),
                                     namep);
-            GV->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Last added; didn't do anything
-            GV->setName("__imp_" + GV->getName()); // Last added
+            //GV->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Last added; didn't do anything
+            //GV->setName("__imp_" + GV->getName()); // Last added
             ctx.external_calls[std::make_tuple(fromexternal, false)] = GV;
         }
         jl_aliasinfo_t ai = jl_aliasinfo_t::fromTBAA(ctx, ctx.tbaa().tbaa_const);

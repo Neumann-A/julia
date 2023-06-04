@@ -78,11 +78,15 @@ namespace JuliaType {
     }
 
     static inline auto get_voidfunc_ty(llvm::LLVMContext &C) {
-        return llvm::FunctionType::get(llvm::Type::getVoidTy(C), /*isVarArg*/false);
+        auto f = llvm::FunctionType::get(llvm::Type::getVoidTy(C), /*isVarArg*/false);
+        //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass);  // Wrong type
+        return f;
     }
 
     static inline auto get_pvoidfunc_ty(llvm::LLVMContext &C) {
-        return get_voidfunc_ty(C)->getPointerTo();
+        auto f = get_voidfunc_ty(C)->getPointerTo();
+        //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // also wrong type
+        return f;
     }
 }
 

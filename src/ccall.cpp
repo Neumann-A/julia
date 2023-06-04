@@ -68,21 +68,23 @@ static bool runtime_sym_gvs(jl_codectx_t &ctx, const char *f_lib, const char *f_
     jl_codegen_params_t::SymMapGV *symMap;
     if ((intptr_t)f_lib == (intptr_t)JL_EXE_LIBNAME) {
         libptrgv = prepare_global_in(M, jlexe_var);
+        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
         symMap = &ctx.emission_context.symMapExe;
     }
     else if ((intptr_t)f_lib == (intptr_t)JL_LIBJULIA_INTERNAL_DL_LIBNAME) {
         libptrgv = prepare_global_in(M, jldlli_var);
         // TESTING: So lets test this. NOFIX
-        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);
-        //libptrgv->setName("__imp_" + libptrgv->getName());
+        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
         symMap = &ctx.emission_context.symMapDlli;
     }
     else if ((intptr_t)f_lib == (intptr_t)JL_LIBJULIA_DL_LIBNAME) {
         libptrgv = prepare_global_in(M, jldll_var);
+        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
         symMap = &ctx.emission_context.symMapDll;
     }
     else if (f_lib == NULL) {
         libptrgv = jl_emit_RTLD_DEFAULT_var(M);
+        //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
         symMap = &ctx.emission_context.symMapDefault;
     }
     else {
@@ -95,6 +97,7 @@ static bool runtime_sym_gvs(jl_codectx_t &ctx, const char *f_lib, const char *f_
             libptrgv = new GlobalVariable(*M, getInt8PtrTy(M->getContext()), false,
                                           GlobalVariable::ExternalLinkage,
                                           Constant::getNullValue(getInt8PtrTy(M->getContext())), name);
+            //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);        // Nope.                       
             libgv.first = libptrgv;
         }
         else {
@@ -113,8 +116,9 @@ static bool runtime_sym_gvs(jl_codectx_t &ctx, const char *f_lib, const char *f_
         llvmgv = new GlobalVariable(*M, T_pvoidfunc, false,
                                     GlobalVariable::ExternalLinkage,
                                     Constant::getNullValue(T_pvoidfunc), name);
+        //llvmgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);   
     }
-
+    //llvmgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass);   //Global is marked as dllimport, but not external
     lib = libptrgv;
     sym = llvmgv;
     return runtime_lib;
@@ -163,7 +167,9 @@ static Value *runtime_sym_lookup(
     Value *nameval = stringConstPtr(emission_context, irbuilder, f_name);
     if (lib_expr) {
         jl_cgval_t libval = emit_expr(*ctx, lib_expr);
-        llvmf = irbuilder.CreateCall(prepare_call_in(jl_builderModule(irbuilder), jllazydlsym_func),
+        auto gf = prepare_call_in(jl_builderModule(irbuilder), jllazydlsym_func);
+        //gf->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing
+        llvmf = irbuilder.CreateCall(gf,
                     { boxed(*ctx, libval), nameval });
     }
     else {
@@ -175,7 +181,9 @@ static Value *runtime_sym_lookup(
             // f_lib is actually one of the special sentinel values
             libname = ConstantExpr::getIntToPtr(ConstantInt::get(emission_context.DL.getIntPtrType(irbuilder.getContext()), (uintptr_t)f_lib), getInt8PtrTy(irbuilder.getContext()));
         }
-        llvmf = irbuilder.CreateCall(prepare_call_in(jl_builderModule(irbuilder), jldlsym_func),
+        auto gf = prepare_call_in(jl_builderModule(irbuilder), jldlsym_func);
+        //gf->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nothing?
+        llvmf = irbuilder.CreateCall(gf,
                     { libname, nameval, libptrgv });
     }
     StoreInst *store = irbuilder.CreateAlignedStore(llvmf, llvmgv, Align(sizeof(void*)));
@@ -226,8 +234,10 @@ static Value *runtime_sym_lookup(
     else {
         runtime_lib = runtime_sym_gvs(ctx, f_lib, f_name, libptrgv, llvmgv);
         libptrgv = prepare_global_in(jl_Module, libptrgv);
+        libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Solved the issues with the dll handles?
     }
     llvmgv = prepare_global_in(jl_Module, llvmgv);
+    //llvmgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Did nothing?
     return runtime_sym_lookup(ctx, funcptype, f_lib, lib_expr, f_name, f, libptrgv, llvmgv, runtime_lib);
 }
 
@@ -244,12 +254,15 @@ static GlobalVariable *emit_plt_thunk(
     auto M = &ctx.emission_context.shared_module();
     PointerType *funcptype = PointerType::get(functype, 0);
     libptrgv = prepare_global_in(M, libptrgv);
+    //libptrgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Global is marked as dllimport, but not external
     llvmgv = prepare_global_in(M, llvmgv);
+    //llvmgv->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Global is marked as dllimport, but not external
     std::string fname;
     raw_string_ostream(fname) << "jlplt_" << f_name << "_" << jl_atomic_fetch_add(&globalUniqueGeneratedNames, 1);
     Function *plt = Function::Create(functype,
                                      GlobalVariable::ExternalLinkage,
                                      fname, M);
+    //plt->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Global is marked as dllimport, but not external
     plt->setAttributes(attrs);
     if (cc != CallingConv::C)
         plt->setCallingConv(cc);
@@ -327,6 +340,7 @@ static Value *emit_plt(
                 functype, attrs, cc, f_lib, f_name, libptrgv, llvmgv, runtime_lib);
     }
     GlobalVariable *got = prepare_global_in(jl_Module, sharedgot);
+    //got->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // did nothing?
     LoadInst *got_val = ctx.builder.CreateAlignedLoad(got->getValueType(), got, Align(sizeof(void*)));
     // See comment in `runtime_sym_lookup` above. This in principle needs a
     // consume ordering too. This is even less likely to cause issues though
@@ -476,7 +490,9 @@ static Value *runtime_apply_type_env(jl_codectx_t &ctx, jl_value_t *ty)
                 ctx.spvals_ptr,
                 ConstantInt::get(ctx.types().T_size, sizeof(jl_svec_t) / sizeof(jl_value_t*)))
     };
-    auto call = ctx.builder.CreateCall(prepare_call(jlapplytype_func), makeArrayRef(args));
+    auto gf = prepare_call(jlapplytype_func);
+    //gf->setDLLStorageClass(GlobalValue::DLLImportStorageClass); // Nope
+    auto call = ctx.builder.CreateCall(gf, makeArrayRef(args));
     addRetAttr(call, Attribute::getWithAlignment(ctx.builder.getContext(), Align(16)));
     return call;
 }
@@ -513,8 +529,10 @@ static void typeassert_input(jl_codectx_t &ctx, const jl_cgval_t &jvinfo, jl_val
             else {
                 jl_cgval_t jlto_runtime = mark_julia_type(ctx, runtime_apply_type_env(ctx, jlto), true, jl_any_type);
                 Value *vx = boxed(ctx, jvinfo);
+                auto * f = prepare_call(jlisa_func);
+                //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
                 Value *istype = ctx.builder.CreateICmpNE(
-                        ctx.builder.CreateCall(prepare_call(jlisa_func), { vx, boxed(ctx, jlto_runtime) }),
+                        ctx.builder.CreateCall(f, { vx, boxed(ctx, jlto_runtime) }),
                         ConstantInt::get(getInt32Ty(ctx.builder.getContext()), 0));
                 BasicBlock *failBB = BasicBlock::Create(ctx.builder.getContext(), "fail", ctx.f);
                 BasicBlock *passBB = BasicBlock::Create(ctx.builder.getContext(), "pass", ctx.f);
@@ -1886,7 +1904,9 @@ static jl_cgval_t emit_ccall(jl_codectx_t &ctx, jl_value_t **args, size_t nargs)
                         decay_derived(ctx, data_pointer(ctx, val)),
                         T_pint8_derived)
             };
-            Value *ret = ctx.builder.CreateCall(prepare_call(jl_object_id__func), makeArrayRef(args));
+            auto * f = prepare_call(jl_object_id__func);
+            //f->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope?
+            Value *ret = ctx.builder.CreateCall(f, makeArrayRef(args));
             JL_GC_POP();
             return mark_or_box_ccall_result(ctx, ret, retboxed, rt, unionall, static_rt);
         }
@@ -1916,6 +1936,7 @@ jl_cgval_t function_sig_t::emit_a_ccall(
     }
 
     FunctionType *functype = this->functype(ctx.builder.getContext());
+    //functype->setDLLStorageClass(GlobalValue::DLLImportStorageClass); //Nope
 
     SmallVector<Value *, 8> argvals(nccallargs + sret);
     for (size_t ai = 0; ai < nccallargs; ai++) {

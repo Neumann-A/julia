@@ -2815,7 +2815,7 @@ JL_DLLEXPORT void jl_set_sysimg_so(void *handle)
     void* *jl_RTLD_DEFAULT_handle_pointer;
     int symbol_found = jl_dlsym(handle, "jl_RTLD_DEFAULT_handle_pointer", (void **)&jl_RTLD_DEFAULT_handle_pointer, 0);
     if (!symbol_found || (void*)&jl_RTLD_DEFAULT_handle != *jl_RTLD_DEFAULT_handle_pointer)
-        jl_error("System image file failed consistency check: maybe opened the wrong version?");
+        jl_errorf("System image file failed consistency check: maybe opened the wrong version? &%d != *%d (%d,**%d)",(size_t)&jl_RTLD_DEFAULT_handle,(size_t)*jl_RTLD_DEFAULT_handle_pointer,(size_t)**&jl_RTLD_DEFAULT_handle_pointer);
     if (jl_options.cpu_target == NULL)
         jl_options.cpu_target = "native";
     jl_sysimg_handle = handle;
