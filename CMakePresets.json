@@ -1,0 +1,165 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name" : "cmake-general",
+            "cacheVariables" : {
+                "CMAKE_EXPORT_COMPILE_COMMANDS" : "TRUE"
+            }
+        },
+        {
+            "name" :"vcpkg_settings",
+            "hidden" : true,
+            "cacheVariables": {
+                "VCPKG_OVERLAY_PORTS": "E:/all/my-vcpkg-ports",
+                "VCPKG_OVERLAY_TRIPLETS": "E:/all/my-vcpkg-triplets",
+                "VCPKG_INSTALL_OPTIONS" : "--x-buildtrees-root=E:/b/;--keep-going;--no-print-usage"
+            }
+        },
+        {
+            "name" :"win-vcpkg_settings",
+            "hidden" : true,
+            "inherits": ["vcpkg_settings" ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-win-llvm-release",
+                "VCPKG_HOST_TRIPLET": "x64-win-llvm-release",
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/build/vcpkg_installed",
+                "CMAKE_TOOLCHAIN_FILE" : "E:/all/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE" : "E:/all/my-vcpkg-triplets/x64-win-llvm/x64-win-llvm.toolchain.cmake"
+            }
+        },
+        {
+            "name" :"linux-vcpkg_settings",
+            "hidden" : true,
+            "inherits": ["vcpkg_settings" ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-linux-release",
+                "VCPKG_HOST_TRIPLET": "x64-linux-release"
+            }
+        },
+        {
+            "name": "ninja-general",
+            "hidden" : true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "inherits": ["cmake-general"],
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM" : "ninja"
+            }
+        },
+        {
+            "name": "clang-cl",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_C_COMPILER"   : "$env{LLVMInstallDir}/bin/clang-cl.exe",
+                "CMAKE_CXX_COMPILER" : "$env{LLVMInstallDir}/bin/clang-cl.exe"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+             },
+             "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+             },
+             "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                  "hostOS": [ "Windows" ],
+                  "intelliSenseMode" : "windows-clang-x64",
+                  "enableMicrosoftCodeAnalysis" : true
+                }
+            },
+            "environment": {
+                "LLVMInstallDir" : "$env{LLVMInstallDir}",
+                "LLVMToolsVersion" : "$env{LLVMToolsVersion}"
+            }
+        },
+        {
+            "name": "linux-ninja-release",
+            "displayName": "linux-ninja-release",
+            "description": "Ninja generator release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/ninja/release",
+            "inherits": ["ninja-general" , "linux-vcpkg_settings" ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "win-ninja-release",
+            "displayName": "win-ninja-release",
+            "description": "Ninja generator release",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/ninja/release",
+            "inherits": ["ninja-general" , "win-vcpkg_settings" , "clang-cl"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "VCPKG_CRT_LINKAGE": "dynamic"
+            }
+        },
+        {
+            "name": "vs-llvm",
+            "displayName": "VS LLVM",
+            "description": "VS Generator with llvm toolset",
+            "generator": "Visual Studio 17 2022",
+            "toolset": "ClangCL,host=x64",
+            "binaryDir": "${sourceDir}/build/vs-llvm",
+            "inherits": [ "win-vcpkg_settings" ],
+            "cacheVariables": {
+            },
+            "environment": {
+                "LLVMInstallDir" : "$env{LLVMInstallDir}",
+                "LLVMToolsVersion" : "$env{LLVMToolsVersion}"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+             },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                  "hostOS": [ "Windows" ],
+                  "intelliSenseMode" : "windows-clang-x64",
+                  "intelliSenseOptions" : {
+                      "useCompilerDefaults" : true,
+                      "additionalCompilerArgs" : ""
+                  },
+                  "enableMicrosoftCodeAnalysis" : true
+                }
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name" : "vs-llvm-build",
+            "configurePreset" : "vs-llvm",
+            "hidden" : true
+        },
+        {
+            "name": "Julia",
+            "inherits": "win-ninja-release",
+            "configuration": "Release",
+            "targets": "julia_bin"
+        },
+        {
+            "name": "win-default-ninja_release",
+            "description": "win ninja release",
+            "displayName": "win-default-ninja_release",
+            "configurePreset": "win-ninja-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-default-ninja_release",
+            "description": "linux ninja release",
+            "displayName": "linux-default-ninja_release",
+            "configurePreset": "linux-ninja-release",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+    ]
+}
