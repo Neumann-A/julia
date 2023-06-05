@@ -208,6 +208,7 @@ add_custom_target(
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
         --output-ji "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
+        --output-o "${JULA_PRECOMPILE_DIR}/corecompiler${CMAKE_C_OUTPUT_EXTENSION}"
         --startup-file=no 
         --warn-overwrite=yes 
         -g${BOOTSTRAP_DEBUG_LEVEL}
@@ -217,9 +218,25 @@ add_custom_target(
     COMMAND echo "Finished corecompiler.ji"
     COMMAND_EXPAND_LISTS VERBATIM USES_TERMINAL
     BYPRODUCTS "${JULA_PRECOMPILE_DIR}/corecompiler.ji"
+               "${JULA_PRECOMPILE_DIR}/corecompiler${CMAKE_C_OUTPUT_EXTENSION}"
     WORKING_DIRECTORY "${JL_BASE_DIR}"
     DEPENDS uv_constants file_constants pcre_h errno julia-codegen
 )
+
+add_library(corecompiler SHARED "${JULA_PRECOMPILE_DIR}/corecompiler${CMAKE_C_OUTPUT_EXTENSION}")
+add_dependencies(corecompiler corecompiler_ji)
+target_link_libraries(corecompiler PRIVATE julia julia-internal julia-codegen)
+target_compile_options(corecompiler PRIVATE -fuse-ld=lld)
+target_link_options(corecompiler PRIVATE  
+                               # /DEFAULTLIB:libucrt.lib 
+                               # /DEFAULTLIB:libvcruntime.lib
+                               # /DEFAULTLIB:libcmt.lib
+                               # /DEFAULTLIB:oldnames.lib 
+ )
+set_property(TARGET corecompiler PROPERTY
+  MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_target_properties(corecompiler PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(corecompiler PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${JULA_PRECOMPILE_DIR}")
 
 add_custom_target(
     sys_o0_ji ALL
@@ -270,7 +287,7 @@ add_custom_target(
 
 add_custom_target(
     sysimg_builder_o ALL
-    COMMAND echo "Running generate_precompile.jl for sys.o"
+    COMMAND echo "Running generate_precompile.jl for sys${CMAKE_C_OUTPUT_EXTENSION}"
     COMMAND set JULIA_NUM_THREADS=1
     COMMAND julia_bin
         -C "${JULIA_CPU_TARGET}" 
