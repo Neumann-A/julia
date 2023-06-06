@@ -31,7 +31,10 @@
                 "VCPKG_INSTALLED_DIR": "${sourceDir}/build/vcpkg_installed",
                 "CMAKE_TOOLCHAIN_FILE" : "E:/all/vcpkg/scripts/buildsystems/vcpkg.cmake",
                 "VCPKG_CHAINLOAD_TOOLCHAIN_FILE" : "E:/all/my-vcpkg-triplets/x64-win-llvm/x64-win-llvm.toolchain.cmake"
-            }
+            },
+            "environment": {
+                "PATH": "${sourceDir}/build/vcpkg_installed/x64-win-llvm-release/bin;$penv{PATH}"
+              }
         },
         {
             "name" :"linux-vcpkg_settings",
